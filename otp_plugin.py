@@ -319,8 +319,8 @@ class OpenTripPlannerPlugin:
                             "&maxWaitingTime=" + str(Isochrones_MaxWaitingTime) + #
                             "&maxTransfers=" + str(Isochrones_MaxTransfers) + #
                             "&maxOffroadDistance=" + str(Isochrones_MaxOffroadDistance) + #
-                            "&cutoffsec=" + #Isochrones_Interval.strip()
-                            "&cutoffsec=" + #
+                            "&cutoffsec=" + str(Isochrones_Interval) + #Isochrones_Interval.strip()
+                            #"&cutoffsec=" + str(Isochrones_Interval) + #
                             Isochrones_AdditionalParameters # Additional Parameters entered as OTP-Readable string -> User responsibility
                             )
                             
