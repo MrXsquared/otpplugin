@@ -241,22 +241,87 @@ class OpenTripPlannerPlugin:
             print(attrs)
             
             #Check where to gather attributes from: GUI or Layer?
+            #WalkSpeed
             if self.dlg.Isochrones_WalkSpeed_Override.isActive() == True:
-                WalkSpeed, WalkSuccess = self.dlg.Isochrones_WalkSpeed_Override.toProperty().value(QgsExpressionContext()) #Receiving Value from GUI: DataDefinedOverride
+                Isochrones_WalkSpeed, IrrelevantSuccessStorage = self.dlg.Isochrones_WalkSpeed_Override.toProperty().value(QgsExpressionContext()) #Receiving Value from GUI: DataDefinedOverride
             else:
-                WalkSpeed = self.dlg.Isochrones_WalkSpeed.value() #Receiving Value from GUI: SpinBox
+                Isochrones_WalkSpeed = self.dlg.Isochrones_WalkSpeed.value() #Receiving Value from GUI: SpinBox
             
+            #Date
+            if self.dlg.Isochrones_Date_Override.isActive() == True:
+                Isochrones_Date, IrrelevantSuccessStorage = self.dlg.Isochrones_Date_Override.toProperty().value(QgsExpressionContext()) #Receiving Value from GUI: DataDefinedOverride
+            else:
+                Isochrones_Date = self.dlg.Isochrones_Date.date().toString("yyyy-MM-dd") #Receiving Value from GUI: SpinBox
+            
+            #Time
+            if self.dlg.Isochrones_Time_Override.isActive() == True:
+                Isochrones_Time, IrrelevantSuccessStorage = self.dlg.Isochrones_Time_Override.toProperty().value(QgsExpressionContext()) #Receiving Value from GUI: DataDefinedOverride
+            else:
+                Isochrones_Time = self.dlg.Isochrones_Time.time().toString("HH:mm:ss")  #Receiving Value from GUI: SpinBox
+            
+            #ArriveBy
+            if self.dlg.Isochrones_ArriveBy_Override.isActive() == True:
+                Isochrones_ArriveBy, IrrelevantSuccessStorage = self.dlg.Isochrones_ArriveBy_Override.toProperty().value(QgsExpressionContext()) #Receiving Value from GUI: DataDefinedOverride
+            else:
+                Isochrones_ArriveBy = self.dlg.Isochrones_ArriveBy.checkState() #Receiving Value from GUI: SpinBox
+            
+            #MaxWaitingTime
+            if self.dlg.Isochrones_MaxWaitingTime_Override.isActive() == True:
+                Isochrones_MaxWaitingTime, IrrelevantSuccessStorage = self.dlg.Isochrones_MaxWaitingTime_Override.toProperty().value(QgsExpressionContext()) #Receiving Value from GUI: DataDefinedOverride
+            else:
+                Isochrones_MaxWaitingTime = self.dlg.Isochrones_MaxWaitingTime.value() #Receiving Value from GUI: SpinBox
+            
+            #MaxTransfers
+            if self.dlg.Isochrones_MaxTransfers_Override.isActive() == True:
+                Isochrones_MaxTransfers, IrrelevantSuccessStorage = self.dlg.Isochrones_MaxTransfers_Override.toProperty().value(QgsExpressionContext()) #Receiving Value from GUI: DataDefinedOverride
+            else:
+                Isochrones_MaxTransfers = self.dlg.Isochrones_MaxTransfers.value() #Receiving Value from GUI: SpinBox
+            
+            #MaxWalkDistance
+            if self.dlg.Isochrones_MaxWalkDistance_Override.isActive() == True:
+                Isochrones_MaxWalkDistance, IrrelevantSuccessStorage = self.dlg.Isochrones_MaxWalkDistance_Override.toProperty().value(QgsExpressionContext()) #Receiving Value from GUI: DataDefinedOverride
+            else:
+                Isochrones_MaxWalkDistance = self.dlg.Isochrones_MaxWalkDistance.value() #Receiving Value from GUI: SpinBox
+            
+            #MaxOffroadDistance
+            if self.dlg.Isochrones_MaxOffroadDistance_Override.isActive() == True:
+                Isochrones_MaxOffroadDistance, IrrelevantSuccessStorage = self.dlg.Isochrones_MaxOffroadDistance_Override.toProperty().value(QgsExpressionContext()) #Receiving Value from GUI: DataDefinedOverride
+            else:
+                Isochrones_MaxOffroadDistance = self.dlg.Isochrones_MaxOffroadDistance.value() #Receiving Value from GUI: SpinBox
+            
+            #Isochrones Interval
+            if self.dlg.Isochrones_Interval_Override.isActive() == True:
+                Isochrones_Interval, IrrelevantSuccessStorage = self.dlg.Isochrones_Interval_Override.toProperty().value(QgsExpressionContext()) #Receiving Value from GUI: DataDefinedOverride
+            else:
+                Isochrones_Interval = self.dlg.Isochrones_Interval.toPlainText() #Receiving Value from GUI: SpinBox
+            
+            #Transportation Mode
+            if self.dlg.Isochrones_TransportationMode_Override.isActive() == True:
+                Isochrones_TransportationMode, IrrelevantSuccessStorage = self.dlg.Isochrones_TransportationMode_Override.toProperty().value(QgsExpressionContext()) #Receiving Value from GUI: DataDefinedOverride
+            else:
+                Isochrones_TransportationMode = self.dlg.Isochrones_TransportationMode.toPlainText() #Receiving Value from GUI: SpinBox
+            
+            #Additional Parameters
+            if self.dlg.Isochrones_AdditionalParameters_Override.isActive() == True:
+                Isochrones_AdditionalParameters, IrrelevantSuccessStorage = self.dlg.Isochrones_AdditionalParameters_Override.toProperty().value(QgsExpressionContext()) #Receiving Value from GUI: DataDefinedOverride
+            else:
+                Isochrones_AdditionalParameters = self.dlg.Isochrones_AdditionalParameters.toPlainText() #Receiving Value from GUI: SpinBox
+                
             #Example URL: http://localhost:8080/otp/routers/ttc/isochrone?fromPlace=43.637,-79.434&mode=WALK,TRANSIT&date=11-14-2017&time=8:00am&maxWalkDistance=500&cutoffSec=1800&cutoffSec=3600
             #Concat URL and convert to string
             isochrone_url = (str(ServerURL) + "isochrone?" + #
                             "fromPlace=" + str(y) + "," + str(x) + #
-                            "&mode=" + #
-                            "&date=" + #
-                            "&time=" + #
-                            "&walkSpeed=" + str(WalkSpeed) + #
-                            "&maxWalkDistance=" + #
+                            "&mode=" + str(Isochrones_TransportationMode) + #
+                            "&date=" + str(Isochrones_Date) + #
+                            "&time=" + str(Isochrones_Time) + #
+                            "&walkSpeed=" + str(Isochrones_WalkSpeed) + #
+                            "&maxWalkDistance=" + str(Isochrones_MaxWalkDistance) + #
+                            "&maxWaitingTime=" + str(Isochrones_MaxWaitingTime) + #
+                            "&maxTransfers=" + str(Isochrones_MaxTransfers) + #
+                            "&maxOffroadDistance=" + str(Isochrones_MaxOffroadDistance) + #
                             "&cutoffsec=" + #Isochrones_Interval.strip()
-                            "&cutoffsec=" #
+                            "&cutoffsec=" + #
+                            Isochrones_AdditionalParameters # Additional Parameters entered as OTP-Readable string -> User responsibility
                             )
                             
             #Just testing stuff below...
