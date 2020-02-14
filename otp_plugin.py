@@ -35,6 +35,8 @@ from .resources import *
 from .otp_plugin_dialog import OpenTripPlannerPluginDialog
 import os.path
 import requests
+import os
+import zipfile
 from requests.exceptions import HTTPError
 
 
@@ -220,9 +222,13 @@ class OpenTripPlannerPlugin:
         fieldnames = [field.name() for field in selectedLayer.fields()] # Receive fieldnames from selected layer
         #selectedLayer = iface.activeLayer() #Uses the currently selected layer in layerslist from qgis browser
         features = selectedLayer.getFeatures()
-        ServerURL = self.dlg.GeneralSettings_ServerURL
+        ServerURL = 'https://api.digitransit.fi/routing/v1/routers/hsl/' #self.dlg.GeneralSettings_ServerURL.toPlainText()
         self.dlg.Isochrones_WalkSpeed_Override.setVectorLayer(selectedLayer)
-        self.dlg.Isochrones_WalkSpeed_Override.updateFieldLists()        
+        self.dlg.Isochrones_WalkSpeed_Override.updateFieldLists()   
+
+        #Savelocation
+        otp_plugin_location = os.path.realpath(os.path.join(os.getcwd(), os.path.dirname(__file__)))
+        tmp_save_location = os.path.join(otp_plugin_location, 'temp_files\\')        
         
         for feature in features:
             # retrieve every feature with its geometry and attributes
@@ -294,12 +300,19 @@ class OpenTripPlannerPlugin:
                 Isochrones_Interval, IrrelevantSuccessStorage = self.dlg.Isochrones_Interval_Override.toProperty().value(QgsExpressionContext()) #Receiving Value from GUI: DataDefinedOverride
             else:
                 Isochrones_Interval = self.dlg.Isochrones_Interval.toPlainText() #Receiving Value from GUI: SpinBox
+            Interval_list = list(Isochrones_Interval.split(",")) # Split given Integers (as string) separated by comma into a list
+            Isochrones_Interval = "&cutoffSec=".join(Interval_list) #Join the list to a string and add leading "&cutoffSec=" to each Integer. The first item of the list will get no leading "&cutoffSec=", we will add this later
+            if not Isochrones_Interval:
+                Isochrones_Interval = '300' # Make sure cutoffSec is not empty because it is a must have parameter
             
             #Transportation Mode
             if self.dlg.Isochrones_TransportationMode_Override.isActive() == True:
                 Isochrones_TransportationMode, IrrelevantSuccessStorage = self.dlg.Isochrones_TransportationMode_Override.toProperty().value(QgsExpressionContext()) #Receiving Value from GUI: DataDefinedOverride
             else:
                 Isochrones_TransportationMode = self.dlg.Isochrones_TransportationMode.toPlainText() #Receiving Value from GUI: SpinBox
+            if not Isochrones_TransportationMode:
+                Isochrones_TransportationMode = 'WALK,TRANSIT' # Make sure Mode is not empty because it is a must have parameter
+            Isochrones_TransportationMode = Isochrones_TransportationMode.upper() # Make sure Mode is given as uppercase to prevent possible server errors (not sure how otp handels this exactly)
             
             #Additional Parameters
             if self.dlg.Isochrones_AdditionalParameters_Override.isActive() == True:
@@ -308,6 +321,7 @@ class OpenTripPlannerPlugin:
                 Isochrones_AdditionalParameters = self.dlg.Isochrones_AdditionalParameters.toPlainText() #Receiving Value from GUI: SpinBox
                 
             #Example URL: http://localhost:8080/otp/routers/ttc/isochrone?fromPlace=43.637,-79.434&mode=WALK,TRANSIT&date=11-14-2017&time=8:00am&maxWalkDistance=500&cutoffSec=1800&cutoffSec=3600
+            #https://api.digitransit.fi/routing/v1/routers/hsl/isochrone?fromPlace=60.169,24.938&mode=WALK,TRANSIT&date=11-14-2017&time=8:00am&maxWalkDistance=500&cutoffSec=1800&cutoffSec=3600
             #Concat URL and convert to string
             isochrone_url = (str(ServerURL) + "isochrone?" + #
                             "fromPlace=" + str(y) + "," + str(x) + #
@@ -318,24 +332,32 @@ class OpenTripPlannerPlugin:
                             "&maxWalkDistance=" + str(Isochrones_MaxWalkDistance) + #
                             "&maxWaitingTime=" + str(Isochrones_MaxWaitingTime) + #
                             "&maxTransfers=" + str(Isochrones_MaxTransfers) + #
-                            "&maxOffroadDistance=" + str(Isochrones_MaxOffroadDistance) + #
-                            "&cutoffsec=" + str(Isochrones_Interval) + #Isochrones_Interval.strip()
-                            #"&cutoffsec=" + str(Isochrones_Interval) + #
+                            "&offRoadDistanceMeters=" + str(Isochrones_MaxOffroadDistance) + #
+                            "&cutoffSec=" + str(Isochrones_Interval) + # Interval-Integers are taken as comma separated string, then split into list and then joined to string with leading "&cutoffSec=". The first interval therefore has no leading "&cutoffSec=" thats why we add it here
                             Isochrones_AdditionalParameters # Additional Parameters entered as OTP-Readable string -> User responsibility
                             )
                             
+            #Request Isochrones and save zip
+            #Worki: https://api.digitransit.fi/routing/v1/routers/hsl/isochrone?fromPlace=60.169,24.938&mode=WALK,TRANSIT&date=2019-11-01&time=08:00:00&maxWalkDistance=500&cutoffSec=1800&cutoffSec=3600
+            url = isochrone_url #'https://api.digitransit.fi/routing/v1/routers/hsl/index/graphql'
+            r = requests.get(url, headers={"accept":"application/x-zip-compressed"})
+            with open(tmp_save_location + 'isochrones.zip', 'wb') as f:
+                f.write(r.content)
+            
+            #unzip file
+            with zipfile.ZipFile(tmp_save_location + 'isochrones.zip', 'r') as zip_ref:
+                zip_ref.extractall(tmp_save_location)            
+            
+            #load file
+            tmp_isochrone_shapefile = iface.addVectorLayer(tmp_save_location + "null.shp", "null", "ogr")
+            
             #Just testing stuff below...
             print(self.dlg.Isochrones_WalkSpeed_Override.vectorLayer())
             print(isochrone_url)
             self.iface.messageBar().pushMessage(
             "Success", "Function Isochrones_RequestIsochrones run! URL: " + isochrone_url + " - " + str(fieldnames) + str(selectedLayer) + str(self.dlg.Isochrones_WalkSpeed_Override.vectorLayer()),
-            level=Qgis.Success, duration=3)   
+            level=Qgis.Success, duration=3) 
 
-            #Testing Requests
-            url = 'https://api.digitransit.fi/routing/v1/routers/hsl/index/graphql'
-            r = requests.get(url, headers={"content-type":"application/json"})
-            with open('D:/Users/Mario/Desktop/cat3.jpg', 'wb') as f:
-                f.write(r.content)
             # Retrieve HTTP meta-data
             print(r.status_code)
             print(r.headers['content-type'])

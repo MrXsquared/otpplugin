@@ -593,6 +593,9 @@
        <height>61</height>
       </rect>
      </property>
+     <property name="toolTip">
+      <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Enter values which OTP can understand, separated by comma. Not all combinations do work. Look up in OTP API Docs if you are unsure. Possible values for example are:&lt;/p&gt;&lt;table border=&quot;0&quot; style=&quot; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px;&quot; cellspacing=&quot;2&quot; cellpadding=&quot;0&quot;&gt;&lt;tr&gt;&lt;td width=&quot;194&quot;&gt;&lt;p&gt;WALK&lt;/p&gt;&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td&gt;&lt;p&gt;CAR &lt;span style=&quot; font-style:italic;&quot;&gt;(can not be combined with WALK)&lt;/span&gt;&lt;/p&gt;&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td&gt;&lt;p&gt;BICYCLE&lt;/p&gt;&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td&gt;&lt;p&gt;TRANSIT&lt;span style=&quot; font-style:italic;&quot;&gt; (Used for combination of all supported public transportation types)&lt;/span&gt;&lt;/p&gt;&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td&gt;&lt;p&gt;TRAM&lt;/p&gt;&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td&gt;&lt;p&gt;BUS&lt;/p&gt;&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td&gt;&lt;p&gt;RAIL&lt;/p&gt;&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td&gt;&lt;p&gt;SUBWAY&lt;/p&gt;&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td&gt;&lt;p&gt;GONDOLA&lt;/p&gt;&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td&gt;&lt;p&gt;CABLE_CAR&lt;/p&gt;&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td&gt;&lt;p&gt;FERRY&lt;/p&gt;&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td&gt;&lt;p&gt;FUNICULAR&lt;/p&gt;&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td&gt;&lt;p&gt;BICYCLE_RENT&lt;/p&gt;&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td&gt;&lt;p&gt;BICYCLE_PARK&lt;/p&gt;&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td&gt;&lt;p&gt;CAR_PARK&lt;/p&gt;&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td&gt;&lt;p&gt;AIRPLANE&lt;/p&gt;&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td&gt;&lt;p&gt;LEG_SWITCH&lt;/p&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;&lt;/body&gt;&lt;/html&gt;</string>
+     </property>
      <property name="tabStopWidth">
       <number>80</number>
      </property>
@@ -624,6 +627,9 @@
        <width>261</width>
        <height>51</height>
       </rect>
+     </property>
+     <property name="toolTip">
+      <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Start with leading &amp;quot;&amp;amp;&amp;quot;, followed by &amp;quot;parameter name&amp;quot;, followed by &amp;quot;=&amp;quot;, followed by &amp;quot;value&amp;quot;. Keep case sensitivity in mind! For example:&lt;/p&gt;&lt;p&gt;&lt;span style=&quot; font-style:italic;&quot;&gt;&amp;amp;waitReluctance=10.5&lt;/span&gt;&lt;/p&gt;&lt;p&gt;or&lt;/p&gt;&lt;p&gt;&lt;span style=&quot; font-style:italic;&quot;&gt;&amp;amp;minTransferTime=50&amp;amp;bikeSpeed=12.5&amp;amp;bikeSwitchTime=5&amp;amp;bikeSwitchCost=3&lt;/span&gt;&lt;/p&gt;&lt;p&gt;Look up in OTP API Docs if you don't know how to write it...&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
      </property>
      <property name="tabStopWidth">
       <number>80</number>
