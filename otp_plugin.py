@@ -216,11 +216,9 @@ class OpenTripPlannerPlugin:
         self.dlg.GeneralSettings_SavePath.setText(filename)
 
     def Isochrones_RequestIsochrones(self, selectedLayer): 
-        layers = QgsProject.instance().layerTreeRoot().children()
-        selectedLayerName = self.dlg.Isochrones_SelectInputLayer.currentText()
-        selectedLayer = [l.layer() for l in layers if l.name() == selectedLayerName][0]      
+      
         #selectedLayer = iface.activeLayer() #Uses the currently selected layer in layerslist from qgis browser
-        
+
         # Setting up Override Button
         ctx = QgsExpressionContext(QgsExpressionContextUtils.globalProjectLayerScopes(selectedLayer)) #This context will be able to evaluate global, project, and layer variables
         
@@ -387,38 +385,38 @@ class OpenTripPlannerPlugin:
             #responseheader = str('response is not defined - does not work')       
             #self.iface.messageBar().pushMessage(
             #"Success", "HTTP GET Request via Python requests: " + "requeststatus: " + requeststatuscode + " requestheader: " + requestheader + " requestencoding: " + requestencoding + " responseheader: " + responseheader + " url: " + url,
-            #level=Qgis.Success, duration=3)             
-    
+            #level=Qgis.Success, duration=3) 
+            
+    def maplayerselection(self): # Outsourcing layerselection to this function to avoid repeading the same code everywhere
+        layers = QgsProject.instance().layerTreeRoot().children() # Fetch available layers
+        selectedLayerName = self.dlg.Isochrones_SelectInputLayer.currentText() # Name of selectedLayer
+        selectedLayer = [l.layer() for l in layers if l.name() == selectedLayerName][0]   # selectedLayer
+        self.selectedLayer = [l.layer() for l in layers if l.name() == selectedLayerName][0] # Somehow prevents calling the function several times when passing selectedLayer to functions
+        
+        # Setting up QgsOverrideButton
+        self.dlg.Isochrones_WalkSpeed_Override.registerExpressionContextGenerator(selectedLayer)
+        self.dlg.Isochrones_WalkSpeed_Override.init(0, QgsProperty(), QgsPropertyDefinition("walkSpeed", "Walk Speed km/h", QgsPropertyDefinition.DoublePositive), selectedLayer, False)
+        
     def run(self):
         """Run method that performs all the real work"""
-
-        
         # Create the dialog with elements (after translation) and keep reference
         # Only create GUI ONCE in callback, so that it will only load when the plugin is started
         if self.first_start == True:
             self.first_start = False
             self.dlg = OpenTripPlannerPluginDialog()
+            self.maplayerselection() # Calling maplayer selection on first startup to load layers into QgsMapLayerComboBox and initialize QgsOverrideButton stuff so selections can be done without actually using the QgsMapLayerComboBox (related to currentIndexChanged.connect(self.maplayerselection) below)
             
-        # New: Using QgsMapLayerComboBox    
+        # Setting up QgsMapLayerComboBox    
         vector_names = [l.name() for l in QgsProject().instance().mapLayers().values() if isinstance(l, QgsVectorLayer)] # Fetch vector layer names
         self.dlg.Isochrones_SelectInputLayer.addItems(vector_names) # Fill with layers
         self.dlg.Isochrones_SelectInputLayer.setFilters(QgsMapLayerProxyModel.PointLayer) # Filter out all layers except Point layers 
-        
-        # Passing layers to functions
-        layers = QgsProject.instance().layerTreeRoot().children()
-        selectedLayerName = self.dlg.Isochrones_SelectInputLayer.currentText()
-        selectedLayer = [l.layer() for l in layers if l.name() == selectedLayerName][0]  
-        
-        # Setting up QgsOverrideButton
-        self.dlg.Isochrones_WalkSpeed_Override.registerExpressionContextGenerator(selectedLayer)
-        self.dlg.Isochrones_WalkSpeed_Override.init(0, QgsProperty(), QgsPropertyDefinition("walkSpeed", "Walk Speed km/h", QgsPropertyDefinition.DoublePositive), selectedLayer, False)
-         
+        self.dlg.Isochrones_SelectInputLayer.currentIndexChanged.connect(self.maplayerselection) # Call function maplayerselection to update all selection related stuff when selection has been changed
         
         # Calling Functions on button click
         self.dlg.GeneralSettings_SelectSavePath.clicked.connect(self.select_output_folder) #Open file dialog when hitting button
-        self.dlg.Isochrones_RequestIsochrones.clicked.connect(self.Isochrones_RequestIsochrones) #Call Isochrones_RequestIsochrones function when clicking on RequestIsochrones button
-        self.dlg.GeneralSettings_Save.clicked.connect(self.store_variables) #Call store_Variables function when clicking on save button 
-                
+        self.dlg.GeneralSettings_Save.clicked.connect(self.store_variables) #Call store_Variables function when clicking on save button       
+        self.dlg.Isochrones_RequestIsochrones.clicked.connect(lambda: self.Isochrones_RequestIsochrones(self.selectedLayer)) #Call Isochrones_RequestIsochrones function when clicking on RequestIsochrones button and handing over selectedLayer. lambda function necessary to do this...
+              
         # show the dialog
         self.dlg.show()
         # Run the dialog event loop
@@ -428,4 +426,7 @@ class OpenTripPlannerPlugin:
             # Do something useful here - delete the line containing pass and
             # substitute with your code.
             #Isochrones_RequestIsochrones()  
-            print("test!")
+            print("OpenTripPlanner Plugin is already running! Close it before, if you wish to restart it.")
+            self.iface.messageBar().pushMessage(
+            "Error", "OpenTripPlanner Plugin is already running! Close it before, if you wish to restart it.",
+            level=Qgis.Critical, duration=3) 
