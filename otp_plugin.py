@@ -215,23 +215,17 @@ class OpenTripPlannerPlugin:
         filename, _filter = QFileDialog.getSaveFileName(self.dlg, "Select output file ","", '*.*')
         self.dlg.GeneralSettings_SavePath.setText(filename)
 
-    def Isochrones_RequestIsochrones(self, selectedLayer):    
-        # Passing layers to functions
+    def Isochrones_RequestIsochrones(self, selectedLayer): 
         layers = QgsProject.instance().layerTreeRoot().children()
         selectedLayerName = self.dlg.Isochrones_SelectInputLayer.currentText()
-        selectedLayer = [l.layer() for l in layers if l.name() == selectedLayerName][0]
-        #selectedLayer = iface.activeLayer() #Uses the currently selected layer in layerslist from qgis browser 
+        selectedLayer = [l.layer() for l in layers if l.name() == selectedLayerName][0]      
+        #selectedLayer = iface.activeLayer() #Uses the currently selected layer in layerslist from qgis browser
+        
+        # Setting up Override Button
+        ctx = QgsExpressionContext(QgsExpressionContextUtils.globalProjectLayerScopes(selectedLayer)) #This context will be able to evaluate global, project, and layer variables
         
         fieldnames = [field.name() for field in selectedLayer.fields()] # Receive fieldnames from selected layer
         features = selectedLayer.getFeatures()
-        
-
-        
-        self.dlg.Isochrones_WalkSpeed_Override.registerExpressionContextGenerator(selectedLayer)
-        definition = QgsPropertyDefinition("walkSpeed", "Walk Speed km/h", QgsPropertyDefinition.DoublePositive) 
-        self.dlg.Isochrones_WalkSpeed_Override.init(0, QgsProperty(), definition, selectedLayer, False)
-        self.dlg.Isochrones_WalkSpeed_Override.updateFieldLists() 
-        ctx = QgsExpressionContext(QgsExpressionContextUtils.globalProjectLayerScopes(selectedLayer))
 
         #Savelocation
         otp_plugin_location = os.path.realpath(os.path.join(os.getcwd(), os.path.dirname(__file__)))
@@ -243,6 +237,9 @@ class OpenTripPlannerPlugin:
         for feature in features:
             # retrieve every feature with its geometry and attributes
             print("Feature ID: ", feature.id())
+            
+            # Override Button Feature
+            ctx.setFeature(feature) #Setting context to current feature
             
             # Feature Geometry
             sourceCrs = QgsCoordinateReferenceSystem(selectedLayer.crs().authid()) # Read CRS of Layer
@@ -265,8 +262,9 @@ class OpenTripPlannerPlugin:
             #if not ok:
             #    Isochrones_Walkspeed = self.dlg.Isochrones_WalkSpeed.value()  # Receiving value from spinBox
             #WalkSpeed
+            
             if self.dlg.Isochrones_WalkSpeed_Override.isActive() == True:
-                Isochrones_WalkSpeed, IrrelevantSuccessStorage = self.dlg.Isochrones_WalkSpeed_Override.toProperty().value(QgsExpressionContext()) #Receiving Value from GUI: DataDefinedOverride
+                Isochrones_WalkSpeed, IrrelevantSuccessStorage = self.dlg.Isochrones_WalkSpeed_Override.toProperty().value(ctx) #Receiving Value from GUI: DataDefinedOverride
             else:
                 Isochrones_WalkSpeed = self.dlg.Isochrones_WalkSpeed.value() #Receiving Value from GUI: SpinBox
             #if Isochrones_WalkSpeed is not None:
@@ -361,9 +359,9 @@ class OpenTripPlannerPlugin:
             #Worki: https://api.digitransit.fi/routing/v1/routers/hsl/isochrone?fromPlace=60.169,24.938&mode=WALK,TRANSIT&date=2019-11-01&time=08:00:00&maxWalkDistance=500&cutoffSec=1800&cutoffSec=3600
             url = isochrone_url #'https://api.digitransit.fi/routing/v1/routers/hsl/index/graphql'
             print('url: ' + url)
-            #r = requests.get(url, headers={"accept":"application/x-zip-compressed"})
-            #with open(tmp_save_location + 'isochrones.zip', 'wb') as f:
-            #    f.write(r.content)
+            #r = requests.get(url, headers={"accept":"application/x-zip-compressed"}) # Sending request to server. Using shapefiles to avoid invalid geometries on high level of detail + geojson throwback seems to be limited to 4 decimals.
+            #with open(tmp_save_location + 'isochrones.zip', 'wb') as f: # Write shapefile to temp location
+            #    f.write(r.content) # write zip content
             
             #unzip file
             #with zipfile.ZipFile(tmp_save_location + 'isochrones.zip', 'r') as zip_ref:
@@ -400,17 +398,22 @@ class OpenTripPlannerPlugin:
         if self.first_start == True:
             self.first_start = False
             self.dlg = OpenTripPlannerPluginDialog()
-
-        # Old: used for standard combobox
-        #layers = QgsProject.instance().layerTreeRoot().children() # Fetch the currently loaded layers
-        #self.dlg.Isochrones_SelectInputLayer2.clear() # Clear the contents of the comboBox from previous runs
-        #self.dlg.Isochrones_SelectInputLayer2.addItems([layer.name() for layer in layers]) # Populate the comboBox with names of all the loaded layers 
-        
+            
         # New: Using QgsMapLayerComboBox    
         vector_names = [l.name() for l in QgsProject().instance().mapLayers().values() if isinstance(l, QgsVectorLayer)] # Fetch vector layer names
         self.dlg.Isochrones_SelectInputLayer.addItems(vector_names) # Fill with layers
-        self.dlg.Isochrones_SelectInputLayer.setFilters(QgsMapLayerProxyModel.PointLayer) # Filter out all layers except Point layers            
-
+        self.dlg.Isochrones_SelectInputLayer.setFilters(QgsMapLayerProxyModel.PointLayer) # Filter out all layers except Point layers 
+        
+        # Passing layers to functions
+        layers = QgsProject.instance().layerTreeRoot().children()
+        selectedLayerName = self.dlg.Isochrones_SelectInputLayer.currentText()
+        selectedLayer = [l.layer() for l in layers if l.name() == selectedLayerName][0]  
+        
+        # Setting up QgsOverrideButton
+        self.dlg.Isochrones_WalkSpeed_Override.registerExpressionContextGenerator(selectedLayer)
+        self.dlg.Isochrones_WalkSpeed_Override.init(0, QgsProperty(), QgsPropertyDefinition("walkSpeed", "Walk Speed km/h", QgsPropertyDefinition.DoublePositive), selectedLayer, False)
+         
+        
         # Calling Functions on button click
         self.dlg.GeneralSettings_SelectSavePath.clicked.connect(self.select_output_folder) #Open file dialog when hitting button
         self.dlg.Isochrones_RequestIsochrones.clicked.connect(self.Isochrones_RequestIsochrones) #Call Isochrones_RequestIsochrones function when clicking on RequestIsochrones button
