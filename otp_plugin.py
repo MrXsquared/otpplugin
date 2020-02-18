@@ -215,22 +215,26 @@ class OpenTripPlannerPlugin:
         filename, _filter = QFileDialog.getSaveFileName(self.dlg, "Select output file ","", '*.*')
         self.dlg.GeneralSettings_SavePath.setText(filename)
 
-    def Isochrones_RequestIsochrones(self, selectedLayer): 
-      
-        #selectedLayer = iface.activeLayer() #Uses the currently selected layer in layerslist from qgis browser
+    def Isochrones_RequestIsochrones(self, selectedLayer, fieldnames):     
+        #selectedLayer = iface.activeLayer() #Uses the currently selected layer in layerslist from qgis browser but we will use the one from maplayerselection bzw. QgsMapLayerComboBox
 
-        # Setting up Override Button
+        # Setting up Override Button context
         ctx = QgsExpressionContext(QgsExpressionContextUtils.globalProjectLayerScopes(selectedLayer)) #This context will be able to evaluate global, project, and layer variables
         
-        fieldnames = [field.name() for field in selectedLayer.fields()] # Receive fieldnames from selected layer
+        # Preparing Features
         features = selectedLayer.getFeatures()
 
-        #Savelocation
-        otp_plugin_location = os.path.realpath(os.path.join(os.getcwd(), os.path.dirname(__file__)))
-        tmp_save_location = os.path.join(otp_plugin_location, 'temp_files\\')  
+        # Savelocation
+        otp_plugin_location = os.path.realpath(os.path.join(os.getcwd(), os.path.dirname(__file__))) #Read path of this plugin
+        tmp_save_location = os.path.join(otp_plugin_location, 'temp_files\\')  #Concat path of this plugin to save location of temporary shapefiles
 
-        #General Settings
+        # General Settings
         ServerURL = 'https://api.digitransit.fi/routing/v1/routers/hsl/' #self.dlg.GeneralSettings_ServerURL.toPlainText()        
+ 
+        #Preparing Transformation to WGS 84
+        sourceCrs = QgsCoordinateReferenceSystem(selectedLayer.crs().authid()) # Read CRS of input layer
+        destCrs = QgsCoordinateReferenceSystem("EPSG:4326") # and set destination CRS to WGS 84 (OTP can only understand EPSG:4326) 
+        tr = QgsCoordinateTransform(sourceCrs, destCrs, QgsProject.instance()) # Setting up transformation
         
         for feature in features:
             # retrieve every feature with its geometry and attributes
@@ -240,33 +244,31 @@ class OpenTripPlannerPlugin:
             ctx.setFeature(feature) #Setting context to current feature
             
             # Feature Geometry
-            sourceCrs = QgsCoordinateReferenceSystem(selectedLayer.crs().authid()) # Read CRS of Layer
-            destCrs = QgsCoordinateReferenceSystem("EPSG:4326") # and set destination CRS to WGS 84
-            geom = feature.geometry() # fetch geometry
-            tr = QgsCoordinateTransform(sourceCrs, destCrs, QgsProject.instance()) # Transform geometry to WGS 84
-            geom.transform(tr) # Transform geometry to WGS 84
+            geom = feature.geometry() # fetch geometry of current feature
+            geom.transform(tr) # Transform geometry to WGS 84 (We prepared this outside the loop)
             pointgeom = geom.asPoint() #Read Point geometry
-            x = pointgeom.x() #Read X-Value
-            y = pointgeom.y() #Read Y-Value
+            x = round(pointgeom.x(),8) #Read X-Value
+            y = round(pointgeom.y(),8) #Read Y-Value
             print("PointX: ", x, " | PointY: ", y)
             
             # Feature Attributes
             attrs = feature.attributes() # fetch attributes
             print(attrs) # attrs is a list. It contains all the attribute values of this feature
             
-            #Check where to gather attributes from: GUI or Layer?
-            #ctx.setFeature(feature)
-            #Isochrones_Walkspeed, ok = self.dlg.Isochrones_WalkSpeed_Override.toProperty().value(ctx)  # Receiving value from DataDefinedOverride
-            #if not ok:
-            #    Isochrones_Walkspeed = self.dlg.Isochrones_WalkSpeed.value()  # Receiving value from spinBox
+            #Check where to gather attributes from: GUI or Layer? 
             #WalkSpeed
-            
-            if self.dlg.Isochrones_WalkSpeed_Override.isActive() == True:
-                Isochrones_WalkSpeed, IrrelevantSuccessStorage = self.dlg.Isochrones_WalkSpeed_Override.toProperty().value(ctx) #Receiving Value from GUI: DataDefinedOverride
+            if self.dlg.Isochrones_WalkSpeed_Use.isChecked() == True: # Check if option shall be used                
+                if self.dlg.Isochrones_WalkSpeed_Override.isActive() == True: # Check if override button shall be used
+                    Isochrones_WalkSpeed_Value, IrrelevantSuccessStorage = self.dlg.Isochrones_WalkSpeed_Override.toProperty().value(ctx) #Receiving Value from Layer or GUI: DataDefinedOverride (Reference: https://gis.stackexchange.com/a/350279/107424 and https://gis.stackexchange.com/a/350993/107424)
+                else:
+                    Isochrones_WalkSpeed_Value = self.dlg.Isochrones_WalkSpeed.value() # Receiving Value from GUI: SpinBox
+                if Isochrones_WalkSpeed_Value is not None: # Check if received value is NULL
+                    Isochrones_Walkspeed_MPH = float(Isochrones_WalkSpeed_Value) * 0.6213711922 # Convert float and kmh to mph
+                    Isochrones_Walkspeed_URLstring = '&walkSpeed=' + str(round(Isochrones_Walkspeed_MPH,6)) # Concatenate to URL string if option is used and value is not NULL
+                else:
+                    Isochrones_Walkspeed_URLstring = '' # Leave URL string empty if value is NULL (Empty, not NULL!!)
             else:
-                Isochrones_WalkSpeed = self.dlg.Isochrones_WalkSpeed.value() #Receiving Value from GUI: SpinBox
-            #if Isochrones_WalkSpeed is not None:
-            #    Isochrones_Walkspeed = Isochrones_Walkspeed * 0.6213711922 #Convert kmh to mph
+                Isochrones_Walkspeed_URLstring = '' # Leave URL string empty if option is not used (Empty, not NULL!!)
             
             #Date
             if self.dlg.Isochrones_Date_Override.isActive() == True:
@@ -344,7 +346,7 @@ class OpenTripPlannerPlugin:
                             "&mode=" + str(Isochrones_TransportationMode) + #
                             "&date=" + str(Isochrones_Date) + #
                             "&time=" + str(Isochrones_Time) + #
-                            "&walkSpeed=" + str(Isochrones_WalkSpeed) + #
+                            Isochrones_Walkspeed_URLstring + #
                             "&maxWalkDistance=" + str(Isochrones_MaxWalkDistance) + #
                             "&maxWaitingTime=" + str(Isochrones_MaxWaitingTime) + #
                             "&maxTransfers=" + str(Isochrones_MaxTransfers) + #
@@ -387,15 +389,16 @@ class OpenTripPlannerPlugin:
             #"Success", "HTTP GET Request via Python requests: " + "requeststatus: " + requeststatuscode + " requestheader: " + requestheader + " requestencoding: " + requestencoding + " responseheader: " + responseheader + " url: " + url,
             #level=Qgis.Success, duration=3) 
             
-    def maplayerselection(self): # Outsourcing layerselection to this function to avoid repeading the same code everywhere
+    def maplayerselection(self): # Outsourcing layerselection to this function to avoid repeading the same code everywhere (Reference: https://gis.stackexchange.com/a/225659/107424)
         layers = QgsProject.instance().layerTreeRoot().children() # Fetch available layers
         selectedLayerName = self.dlg.Isochrones_SelectInputLayer.currentText() # Name of selectedLayer
         selectedLayer = [l.layer() for l in layers if l.name() == selectedLayerName][0]   # selectedLayer
         self.selectedLayer = [l.layer() for l in layers if l.name() == selectedLayerName][0] # Somehow prevents calling the function several times when passing selectedLayer to functions
+        self.fieldnames = [field.name() for field in selectedLayer.fields()] # Receive fieldnames from selected layer
         
-        # Setting up QgsOverrideButton
-        self.dlg.Isochrones_WalkSpeed_Override.registerExpressionContextGenerator(selectedLayer)
-        self.dlg.Isochrones_WalkSpeed_Override.init(0, QgsProperty(), QgsPropertyDefinition("walkSpeed", "Walk Speed km/h", QgsPropertyDefinition.DoublePositive), selectedLayer, False)
+        # Setting up QgsOverrideButtons (Reference: https://gis.stackexchange.com/a/350993/107424)
+        self.dlg.Isochrones_WalkSpeed_Override.registerExpressionContextGenerator(selectedLayer) # will allow the use of global, project, and layer variables.
+        self.dlg.Isochrones_WalkSpeed_Override.init(0, QgsProperty(), QgsPropertyDefinition("walkSpeed", "Walk Speed km/h", QgsPropertyDefinition.DoublePositive), selectedLayer, False) # Need to tell the button which kind of property it expects. This is done by calling the init function of the button. This function expects a QgsPropertyDefinition
         
     def run(self):
         """Run method that performs all the real work"""
@@ -415,7 +418,7 @@ class OpenTripPlannerPlugin:
         # Calling Functions on button click
         self.dlg.GeneralSettings_SelectSavePath.clicked.connect(self.select_output_folder) #Open file dialog when hitting button
         self.dlg.GeneralSettings_Save.clicked.connect(self.store_variables) #Call store_Variables function when clicking on save button       
-        self.dlg.Isochrones_RequestIsochrones.clicked.connect(lambda: self.Isochrones_RequestIsochrones(self.selectedLayer)) #Call Isochrones_RequestIsochrones function when clicking on RequestIsochrones button and handing over selectedLayer. lambda function necessary to do this...
+        self.dlg.Isochrones_RequestIsochrones.clicked.connect(lambda: self.Isochrones_RequestIsochrones(self.selectedLayer, self.fieldnames)) #Call Isochrones_RequestIsochrones function when clicking on RequestIsochrones button and handing over selectedLayer. lambda function necessary to do this... (Reference: https://gis.stackexchange.com/a/351167/107424)
               
         # show the dialog
         self.dlg.show()
