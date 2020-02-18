@@ -215,43 +215,62 @@ class OpenTripPlannerPlugin:
         filename, _filter = QFileDialog.getSaveFileName(self.dlg, "Select output file ","", '*.*')
         self.dlg.GeneralSettings_SavePath.setText(filename)
 
-    def Isochrones_RequestIsochrones(self):
-        layers = QgsProject.instance().layerTreeRoot().children() # Fetch the currently loaded layers
-        selectedLayerIndex = self.dlg.Isochrones_SelectInputLayer.currentIndex() # Fetch the selected layer in combobox
-        selectedLayer = layers[selectedLayerIndex].layer() # Use the in combobox selected layer
+    def Isochrones_RequestIsochrones(self, selectedLayer):    
+        # Passing layers to functions
+        layers = QgsProject.instance().layerTreeRoot().children()
+        selectedLayerName = self.dlg.Isochrones_SelectInputLayer.currentText()
+        selectedLayer = [l.layer() for l in layers if l.name() == selectedLayerName][0]
+        #selectedLayer = iface.activeLayer() #Uses the currently selected layer in layerslist from qgis browser 
+        
         fieldnames = [field.name() for field in selectedLayer.fields()] # Receive fieldnames from selected layer
-        #selectedLayer = iface.activeLayer() #Uses the currently selected layer in layerslist from qgis browser
         features = selectedLayer.getFeatures()
-        ServerURL = 'https://api.digitransit.fi/routing/v1/routers/hsl/' #self.dlg.GeneralSettings_ServerURL.toPlainText()
-        self.dlg.Isochrones_WalkSpeed_Override.setVectorLayer(selectedLayer)
-        self.dlg.Isochrones_WalkSpeed_Override.updateFieldLists()   
+        
+
+        
+        self.dlg.Isochrones_WalkSpeed_Override.registerExpressionContextGenerator(selectedLayer)
+        definition = QgsPropertyDefinition("walkSpeed", "Walk Speed km/h", QgsPropertyDefinition.DoublePositive) 
+        self.dlg.Isochrones_WalkSpeed_Override.init(0, QgsProperty(), definition, selectedLayer, False)
+        self.dlg.Isochrones_WalkSpeed_Override.updateFieldLists() 
+        ctx = QgsExpressionContext(QgsExpressionContextUtils.globalProjectLayerScopes(selectedLayer))
 
         #Savelocation
         otp_plugin_location = os.path.realpath(os.path.join(os.getcwd(), os.path.dirname(__file__)))
-        tmp_save_location = os.path.join(otp_plugin_location, 'temp_files\\')        
+        tmp_save_location = os.path.join(otp_plugin_location, 'temp_files\\')  
+
+        #General Settings
+        ServerURL = 'https://api.digitransit.fi/routing/v1/routers/hsl/' #self.dlg.GeneralSettings_ServerURL.toPlainText()        
         
         for feature in features:
             # retrieve every feature with its geometry and attributes
             print("Feature ID: ", feature.id())
-            # fetch geometry
-            # show some information about the feature geometry
-            geom = feature.geometry()
+            
+            # Feature Geometry
+            sourceCrs = QgsCoordinateReferenceSystem(selectedLayer.crs().authid()) # Read CRS of Layer
+            destCrs = QgsCoordinateReferenceSystem("EPSG:4326") # and set destination CRS to WGS 84
+            geom = feature.geometry() # fetch geometry
+            tr = QgsCoordinateTransform(sourceCrs, destCrs, QgsProject.instance()) # Transform geometry to WGS 84
+            geom.transform(tr) # Transform geometry to WGS 84
             pointgeom = geom.asPoint() #Read Point geometry
             x = pointgeom.x() #Read X-Value
             y = pointgeom.y() #Read Y-Value
             print("PointX: ", x, " | PointY: ", y)
             
-            # fetch attributes
-            attrs = feature.attributes()
-            # attrs is a list. It contains all the attribute values of this feature
-            print(attrs)
+            # Feature Attributes
+            attrs = feature.attributes() # fetch attributes
+            print(attrs) # attrs is a list. It contains all the attribute values of this feature
             
             #Check where to gather attributes from: GUI or Layer?
+            #ctx.setFeature(feature)
+            #Isochrones_Walkspeed, ok = self.dlg.Isochrones_WalkSpeed_Override.toProperty().value(ctx)  # Receiving value from DataDefinedOverride
+            #if not ok:
+            #    Isochrones_Walkspeed = self.dlg.Isochrones_WalkSpeed.value()  # Receiving value from spinBox
             #WalkSpeed
             if self.dlg.Isochrones_WalkSpeed_Override.isActive() == True:
                 Isochrones_WalkSpeed, IrrelevantSuccessStorage = self.dlg.Isochrones_WalkSpeed_Override.toProperty().value(QgsExpressionContext()) #Receiving Value from GUI: DataDefinedOverride
             else:
                 Isochrones_WalkSpeed = self.dlg.Isochrones_WalkSpeed.value() #Receiving Value from GUI: SpinBox
+            #if Isochrones_WalkSpeed is not None:
+            #    Isochrones_Walkspeed = Isochrones_Walkspeed * 0.6213711922 #Convert kmh to mph
             
             #Date
             if self.dlg.Isochrones_Date_Override.isActive() == True:
@@ -300,11 +319,12 @@ class OpenTripPlannerPlugin:
                 Isochrones_Interval, IrrelevantSuccessStorage = self.dlg.Isochrones_Interval_Override.toProperty().value(QgsExpressionContext()) #Receiving Value from GUI: DataDefinedOverride
             else:
                 Isochrones_Interval = self.dlg.Isochrones_Interval.toPlainText() #Receiving Value from GUI: SpinBox
+            if not Isochrones_Interval:
+                Isochrones_Interval = '60, 120, 180,240,300' # Make sure cutoffSec is not empty because it is a must have parameter   
+            Isochrones_Interval = Isochrones_Interval.replace(" ", "")  # Remove whitespaces in case user entered them              
             Interval_list = list(Isochrones_Interval.split(",")) # Split given Integers (as string) separated by comma into a list
             Isochrones_Interval = "&cutoffSec=".join(Interval_list) #Join the list to a string and add leading "&cutoffSec=" to each Integer. The first item of the list will get no leading "&cutoffSec=", we will add this later
-            if not Isochrones_Interval:
-                Isochrones_Interval = '300' # Make sure cutoffSec is not empty because it is a must have parameter
-            
+
             #Transportation Mode
             if self.dlg.Isochrones_TransportationMode_Override.isActive() == True:
                 Isochrones_TransportationMode, IrrelevantSuccessStorage = self.dlg.Isochrones_TransportationMode_Override.toProperty().value(QgsExpressionContext()) #Receiving Value from GUI: DataDefinedOverride
@@ -340,16 +360,17 @@ class OpenTripPlannerPlugin:
             #Request Isochrones and save zip
             #Worki: https://api.digitransit.fi/routing/v1/routers/hsl/isochrone?fromPlace=60.169,24.938&mode=WALK,TRANSIT&date=2019-11-01&time=08:00:00&maxWalkDistance=500&cutoffSec=1800&cutoffSec=3600
             url = isochrone_url #'https://api.digitransit.fi/routing/v1/routers/hsl/index/graphql'
-            r = requests.get(url, headers={"accept":"application/x-zip-compressed"})
-            with open(tmp_save_location + 'isochrones.zip', 'wb') as f:
-                f.write(r.content)
+            print('url: ' + url)
+            #r = requests.get(url, headers={"accept":"application/x-zip-compressed"})
+            #with open(tmp_save_location + 'isochrones.zip', 'wb') as f:
+            #    f.write(r.content)
             
             #unzip file
-            with zipfile.ZipFile(tmp_save_location + 'isochrones.zip', 'r') as zip_ref:
-                zip_ref.extractall(tmp_save_location)            
+            #with zipfile.ZipFile(tmp_save_location + 'isochrones.zip', 'r') as zip_ref:
+            #    zip_ref.extractall(tmp_save_location)            
             
             #load file
-            tmp_isochrone_shapefile = iface.addVectorLayer(tmp_save_location + "null.shp", "null", "ogr")
+            #tmp_isochrone_shapefile = iface.addVectorLayer(tmp_save_location + "null.shp", "null", "ogr")
             
             #Just testing stuff below...
             print(self.dlg.Isochrones_WalkSpeed_Override.vectorLayer())
@@ -359,16 +380,16 @@ class OpenTripPlannerPlugin:
             level=Qgis.Success, duration=3) 
 
             # Retrieve HTTP meta-data
-            print(r.status_code)
-            print(r.headers['content-type'])
-            print(r.encoding)
-            requeststatuscode = str(r.status_code)
-            requestheader = str(r.headers['content-type'])
-            requestencoding = str(r.encoding)
-            responseheader = str('response is not defined - does not work')       
-            self.iface.messageBar().pushMessage(
-            "Success", "HTTP GET Request via Python requests: " + "requeststatus: " + requeststatuscode + " requestheader: " + requestheader + " requestencoding: " + requestencoding + " responseheader: " + responseheader + " url: " + url,
-            level=Qgis.Success, duration=3)             
+            #print(r.status_code)
+            #print(r.headers['content-type'])
+            #print(r.encoding)
+            #requeststatuscode = str(r.status_code)
+            #requestheader = str(r.headers['content-type'])
+            #requestencoding = str(r.encoding)
+            #responseheader = str('response is not defined - does not work')       
+            #self.iface.messageBar().pushMessage(
+            #"Success", "HTTP GET Request via Python requests: " + "requeststatus: " + requeststatuscode + " requestheader: " + requestheader + " requestencoding: " + requestencoding + " responseheader: " + responseheader + " url: " + url,
+            #level=Qgis.Success, duration=3)             
     
     def run(self):
         """Run method that performs all the real work"""
@@ -379,19 +400,22 @@ class OpenTripPlannerPlugin:
         if self.first_start == True:
             self.first_start = False
             self.dlg = OpenTripPlannerPluginDialog()
-            self.dlg.GeneralSettings_SelectSavePath.clicked.connect(self.select_output_folder) #Open file dialog when hitting button
-            self.dlg.Isochrones_RequestIsochrones.clicked.connect(self.Isochrones_RequestIsochrones) #Call Isochrones_RequestIsochrones function when clicking on RequestIsochrones button
-            self.dlg.GeneralSettings_Save.clicked.connect(self.store_variables) #Call store_Variables function when clicking on save button
-            
-            
-        # Fetch the currently loaded layers
-        layers = QgsProject.instance().layerTreeRoot().children()
-        # Clear the contents of the comboBox from previous runs
-        self.dlg.Isochrones_SelectInputLayer.clear()
-        # Populate the comboBox with names of all the loaded layers
-        self.dlg.Isochrones_SelectInputLayer.addItems([layer.name() for layer in layers])
+
+        # Old: used for standard combobox
+        #layers = QgsProject.instance().layerTreeRoot().children() # Fetch the currently loaded layers
+        #self.dlg.Isochrones_SelectInputLayer2.clear() # Clear the contents of the comboBox from previous runs
+        #self.dlg.Isochrones_SelectInputLayer2.addItems([layer.name() for layer in layers]) # Populate the comboBox with names of all the loaded layers 
         
-        
+        # New: Using QgsMapLayerComboBox    
+        vector_names = [l.name() for l in QgsProject().instance().mapLayers().values() if isinstance(l, QgsVectorLayer)] # Fetch vector layer names
+        self.dlg.Isochrones_SelectInputLayer.addItems(vector_names) # Fill with layers
+        self.dlg.Isochrones_SelectInputLayer.setFilters(QgsMapLayerProxyModel.PointLayer) # Filter out all layers except Point layers            
+
+        # Calling Functions on button click
+        self.dlg.GeneralSettings_SelectSavePath.clicked.connect(self.select_output_folder) #Open file dialog when hitting button
+        self.dlg.Isochrones_RequestIsochrones.clicked.connect(self.Isochrones_RequestIsochrones) #Call Isochrones_RequestIsochrones function when clicking on RequestIsochrones button
+        self.dlg.GeneralSettings_Save.clicked.connect(self.store_variables) #Call store_Variables function when clicking on save button 
+                
         # show the dialog
         self.dlg.show()
         # Run the dialog event loop
@@ -400,5 +424,5 @@ class OpenTripPlannerPlugin:
         if result:
             # Do something useful here - delete the line containing pass and
             # substitute with your code.
-            Isochrones_RequestIsochrones()
+            #Isochrones_RequestIsochrones()  
             print("test!")
