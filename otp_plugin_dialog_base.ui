@@ -67,7 +67,7 @@
       </rect>
      </property>
      <property name="toolTip">
-      <string>Departure or arrival date in YYYY-MM-DD.</string>
+      <string>Departure or arrival date in yyyy-MM-dd.</string>
      </property>
      <property name="dateTime">
       <datetime>
@@ -99,7 +99,7 @@
       </rect>
      </property>
      <property name="toolTip">
-      <string>Departure or arrival time in HH:MM:SS.</string>
+      <string>Departure or arrival time in HH:mm:ss.</string>
      </property>
      <property name="dateTime">
       <datetime>
@@ -260,28 +260,6 @@
       <string>Select Input Layer:</string>
      </property>
     </widget>
-    <widget class="QSpinBox" name="Isochrones_MaxWaitingTime">
-     <property name="geometry">
-      <rect>
-       <x>240</x>
-       <y>270</y>
-       <width>91</width>
-       <height>22</height>
-      </rect>
-     </property>
-     <property name="toolTip">
-      <string>Maximum time in seconds one is willing to wait for a transport.</string>
-     </property>
-     <property name="maximum">
-      <number>99999999</number>
-     </property>
-     <property name="singleStep">
-      <number>10</number>
-     </property>
-     <property name="value">
-      <number>900</number>
-     </property>
-    </widget>
     <widget class="QSpinBox" name="Isochrones_MaxTransfers">
      <property name="geometry">
       <rect>
@@ -330,7 +308,7 @@
       </rect>
      </property>
      <property name="text">
-      <string>Maximum Waiting Time in Seconds:</string>
+      <string>Wait Reluctance Factor:</string>
      </property>
     </widget>
     <widget class="QLabel" name="label_8">
@@ -470,7 +448,7 @@
       </rect>
      </property>
     </widget>
-    <widget class="QgsPropertyOverrideButton" name="Isochrones_MaxWaitingTime_Override">
+    <widget class="QgsPropertyOverrideButton" name="Isochrones_WaitReluctance_Override">
      <property name="geometry">
       <rect>
        <x>340</x>
@@ -546,7 +524,7 @@
       </rect>
      </property>
      <property name="toolTip">
-      <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Enter isochrone intervals in seconds separated by comma. Only integer values do work.&lt;/p&gt;&lt;p&gt;Default if nothing is specified: 60,120,180,240,300&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+      <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Enter isochrone intervals in seconds (Integer) separated by comma --&amp;gt; String.&lt;/p&gt;&lt;p&gt;For example:&lt;br/&gt;60 or 60,180,300&lt;/p&gt;&lt;p&gt;Default if nothing is specified: 60,120,180,240,300&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
      </property>
      <property name="autoFormatting">
       <set>QTextEdit::AutoNone</set>
@@ -569,6 +547,9 @@
        <width>30</width>
        <height>26</height>
       </rect>
+     </property>
+     <property name="toolTip">
+      <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Enter isochrone intervals in seconds (Integer) separated by comma --&amp;gt; String. All values need to be strings, so for a single interval 60 won't work, but '60' will work. Use to_string function if needed.&lt;/p&gt;&lt;p&gt;For example:&lt;br/&gt;'60' or '60,180,300' or '60'||','||'300'||','||'600'||&amp;quot;FieldnameOfInterval&amp;quot;||','||&amp;quot;FieldnameOfMaxInterval&amp;quot;&lt;/p&gt;&lt;p&gt;Default if nothing is specified: 60,120,180,240,300&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
      </property>
     </widget>
     <widget class="QTextEdit" name="Isochrones_TransportationMode">
@@ -625,7 +606,7 @@
       <bool>false</bool>
      </property>
      <property name="placeholderText">
-      <string>Type in anything OTP can understand...</string>
+      <string>Type in anything OTP can understand... like for example: &amp;minTransferTime=50&amp;bikeSwitchCost=3</string>
      </property>
     </widget>
     <widget class="QLabel" name="label_17">
@@ -769,11 +750,14 @@ Do not use an option if it is not compatible with the selected Mode. For example
      <property name="text">
       <string/>
      </property>
+     <property name="checkable">
+      <bool>true</bool>
+     </property>
      <property name="checked">
       <bool>false</bool>
      </property>
     </widget>
-    <widget class="QCheckBox" name="Isochrones_MaxWaitingTime_Use">
+    <widget class="QCheckBox" name="Isochrones_WaitReluctance_Use">
      <property name="enabled">
       <bool>true</bool>
      </property>
@@ -1106,6 +1090,31 @@ Do not use an option if it is not compatible with the selected Mode. For example
      </property>
      <property name="text">
       <string>Restore Default Settings</string>
+     </property>
+    </widget>
+    <widget class="QDoubleSpinBox" name="Isochrones_WaitReluctance">
+     <property name="geometry">
+      <rect>
+       <x>240</x>
+       <y>270</y>
+       <width>91</width>
+       <height>22</height>
+      </rect>
+     </property>
+     <property name="toolTip">
+      <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;How much worse is waiting for a transit vehicle than being on a transit vehicle, as a multiplier. The default value treats wait and on-vehicle time as the same. It may be tempting to set this higher than walkReluctance (as studies often find this kind of preferences among riders) but the planner will take this literally and walk down a transit line to avoid waiting at a stop. This used to be set less than 1 (0.95) which would make waiting offboard preferable to waiting onboard in an interlined trip. That is also undesirable. If we only tried the shortest possible transfer at each stop to neighboring stop patterns, this problem could disappear.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+     </property>
+     <property name="decimals">
+      <number>2</number>
+     </property>
+     <property name="maximum">
+      <double>100.000000000000000</double>
+     </property>
+     <property name="singleStep">
+      <double>0.050000000000000</double>
+     </property>
+     <property name="value">
+      <double>0.950000000000000</double>
      </property>
     </widget>
    </widget>
