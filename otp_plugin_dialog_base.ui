@@ -176,19 +176,6 @@
       <string>Transportation Mode</string>
      </property>
     </widget>
-    <widget class="QLabel" name="label_2">
-     <property name="geometry">
-      <rect>
-       <x>40</x>
-       <y>90</y>
-       <width>181</width>
-       <height>21</height>
-      </rect>
-     </property>
-     <property name="text">
-      <string>Walk Speed in km/h:</string>
-     </property>
-    </widget>
     <widget class="QLabel" name="label_3">
      <property name="geometry">
       <rect>
@@ -219,32 +206,6 @@
      </property>
      <property name="value">
       <number>150</number>
-     </property>
-    </widget>
-    <widget class="QLabel" name="label_4">
-     <property name="geometry">
-      <rect>
-       <x>40</x>
-       <y>150</y>
-       <width>181</width>
-       <height>21</height>
-      </rect>
-     </property>
-     <property name="text">
-      <string>Date:</string>
-     </property>
-    </widget>
-    <widget class="QLabel" name="label_5">
-     <property name="geometry">
-      <rect>
-       <x>40</x>
-       <y>180</y>
-       <width>181</width>
-       <height>21</height>
-      </rect>
-     </property>
-     <property name="text">
-      <string>Time:</string>
      </property>
     </widget>
     <widget class="QLabel" name="label_6">
@@ -298,58 +259,6 @@
       <number>1000</number>
      </property>
     </widget>
-    <widget class="QLabel" name="label_7">
-     <property name="geometry">
-      <rect>
-       <x>40</x>
-       <y>270</y>
-       <width>181</width>
-       <height>21</height>
-      </rect>
-     </property>
-     <property name="text">
-      <string>Wait Reluctance Factor:</string>
-     </property>
-    </widget>
-    <widget class="QLabel" name="label_8">
-     <property name="geometry">
-      <rect>
-       <x>40</x>
-       <y>300</y>
-       <width>181</width>
-       <height>21</height>
-      </rect>
-     </property>
-     <property name="text">
-      <string>Maximum Transfers:</string>
-     </property>
-    </widget>
-    <widget class="QLabel" name="label_9">
-     <property name="geometry">
-      <rect>
-       <x>40</x>
-       <y>330</y>
-       <width>181</width>
-       <height>21</height>
-      </rect>
-     </property>
-     <property name="text">
-      <string>Maximum Walk Distance in Meters:</string>
-     </property>
-    </widget>
-    <widget class="QLabel" name="label_10">
-     <property name="geometry">
-      <rect>
-       <x>40</x>
-       <y>360</y>
-       <width>181</width>
-       <height>21</height>
-      </rect>
-     </property>
-     <property name="text">
-      <string>Maximum Offroad Distance in Meters:</string>
-     </property>
-    </widget>
     <widget class="Line" name="line">
      <property name="geometry">
       <rect>
@@ -383,19 +292,6 @@
      </property>
      <property name="checked">
       <bool>false</bool>
-     </property>
-    </widget>
-    <widget class="QLabel" name="label_11">
-     <property name="geometry">
-      <rect>
-       <x>40</x>
-       <y>210</y>
-       <width>181</width>
-       <height>21</height>
-      </rect>
-     </property>
-     <property name="text">
-      <string>Arrive By:</string>
      </property>
     </widget>
     <widget class="QgsPropertyOverrideButton" name="Isochrones_TransportationMode_Override">
@@ -653,7 +549,7 @@
       <rect>
        <x>10</x>
        <y>90</y>
-       <width>21</width>
+       <width>211</width>
        <height>20</height>
       </rect>
      </property>
@@ -662,8 +558,11 @@
 If not checked, the servers default setting will be used. Servers default is NULL when incompatible with selected Mode.
 Do not use an option if it is not compatible with the selected Mode. For example Travelmode &quot;CAR&quot; is not compatible with &quot;BikeSpeed&quot;. If you are unsure about compatibility, check OTP API Docs.</string>
      </property>
-     <property name="text">
+     <property name="accessibleName">
       <string/>
+     </property>
+     <property name="text">
+      <string>Walk Speed in km/h:</string>
      </property>
      <property name="checked">
       <bool>false</bool>
@@ -690,7 +589,7 @@ Do not use an option if it is not compatible with the selected Mode. For example
       <rect>
        <x>10</x>
        <y>150</y>
-       <width>21</width>
+       <width>211</width>
        <height>20</height>
       </rect>
      </property>
@@ -700,7 +599,7 @@ If not checked, the servers default setting will be used. Servers default is NUL
 Do not use an option if it is not compatible with the selected Mode. For example Travelmode &quot;CAR&quot; is not compatible with &quot;BikeSpeed&quot;. If you are unsure about compatibility, check OTP API Docs.</string>
      </property>
      <property name="text">
-      <string/>
+      <string>Date:</string>
      </property>
      <property name="checked">
       <bool>true</bool>
@@ -714,7 +613,7 @@ Do not use an option if it is not compatible with the selected Mode. For example
       <rect>
        <x>10</x>
        <y>180</y>
-       <width>21</width>
+       <width>211</width>
        <height>20</height>
       </rect>
      </property>
@@ -724,7 +623,7 @@ If not checked, the servers default setting will be used. Servers default is NUL
 Do not use an option if it is not compatible with the selected Mode. For example Travelmode &quot;CAR&quot; is not compatible with &quot;BikeSpeed&quot;. If you are unsure about compatibility, check OTP API Docs.</string>
      </property>
      <property name="text">
-      <string/>
+      <string>Time:</string>
      </property>
      <property name="checked">
       <bool>true</bool>
@@ -738,7 +637,7 @@ Do not use an option if it is not compatible with the selected Mode. For example
       <rect>
        <x>10</x>
        <y>210</y>
-       <width>21</width>
+       <width>211</width>
        <height>20</height>
       </rect>
      </property>
@@ -748,7 +647,7 @@ If not checked, the servers default setting will be used. Servers default is NUL
 Do not use an option if it is not compatible with the selected Mode. For example Travelmode &quot;CAR&quot; is not compatible with &quot;BikeSpeed&quot;. If you are unsure about compatibility, check OTP API Docs.</string>
      </property>
      <property name="text">
-      <string/>
+      <string>Arrive By:</string>
      </property>
      <property name="checkable">
       <bool>true</bool>
@@ -765,7 +664,7 @@ Do not use an option if it is not compatible with the selected Mode. For example
       <rect>
        <x>10</x>
        <y>270</y>
-       <width>21</width>
+       <width>211</width>
        <height>20</height>
       </rect>
      </property>
@@ -775,7 +674,7 @@ If not checked, the servers default setting will be used. Servers default is NUL
 Do not use an option if it is not compatible with the selected Mode. For example Travelmode &quot;CAR&quot; is not compatible with &quot;BikeSpeed&quot;. If you are unsure about compatibility, check OTP API Docs.</string>
      </property>
      <property name="text">
-      <string/>
+      <string>Wait Reluctance Factor:</string>
      </property>
      <property name="checked">
       <bool>false</bool>
@@ -789,7 +688,7 @@ Do not use an option if it is not compatible with the selected Mode. For example
       <rect>
        <x>10</x>
        <y>300</y>
-       <width>21</width>
+       <width>211</width>
        <height>20</height>
       </rect>
      </property>
@@ -799,7 +698,7 @@ If not checked, the servers default setting will be used. Servers default is NUL
 Do not use an option if it is not compatible with the selected Mode. For example Travelmode &quot;CAR&quot; is not compatible with &quot;BikeSpeed&quot;. If you are unsure about compatibility, check OTP API Docs.</string>
      </property>
      <property name="text">
-      <string/>
+      <string>Maximum Transfers:</string>
      </property>
      <property name="checked">
       <bool>false</bool>
@@ -813,7 +712,7 @@ Do not use an option if it is not compatible with the selected Mode. For example
       <rect>
        <x>10</x>
        <y>330</y>
-       <width>21</width>
+       <width>211</width>
        <height>20</height>
       </rect>
      </property>
@@ -823,7 +722,7 @@ If not checked, the servers default setting will be used. Servers default is NUL
 Do not use an option if it is not compatible with the selected Mode. For example Travelmode &quot;CAR&quot; is not compatible with &quot;BikeSpeed&quot;. If you are unsure about compatibility, check OTP API Docs.</string>
      </property>
      <property name="text">
-      <string/>
+      <string>Maximum Walk Distance in Meters:</string>
      </property>
      <property name="checked">
       <bool>false</bool>
@@ -837,7 +736,7 @@ Do not use an option if it is not compatible with the selected Mode. For example
       <rect>
        <x>10</x>
        <y>360</y>
-       <width>21</width>
+       <width>211</width>
        <height>20</height>
       </rect>
      </property>
@@ -847,7 +746,7 @@ If not checked, the servers default setting will be used. Servers default is NUL
 Do not use an option if it is not compatible with the selected Mode. For example Travelmode &quot;CAR&quot; is not compatible with &quot;BikeSpeed&quot;. If you are unsure about compatibility, check OTP API Docs.</string>
      </property>
      <property name="text">
-      <string/>
+      <string>Maximum Offroad Distance in Meters:</string>
      </property>
      <property name="checked">
       <bool>false</bool>
@@ -878,19 +777,6 @@ Do not use an option if it is not compatible with the selected Mode. For example
       <number>200</number>
      </property>
     </widget>
-    <widget class="QLabel" name="label_18">
-     <property name="geometry">
-      <rect>
-       <x>40</x>
-       <y>390</y>
-       <width>171</width>
-       <height>21</height>
-      </rect>
-     </property>
-     <property name="text">
-      <string>Level of detail (Precision Meters):</string>
-     </property>
-    </widget>
     <widget class="QCheckBox" name="Isochrones_PrecisionMeters_Use">
      <property name="enabled">
       <bool>true</bool>
@@ -899,7 +785,7 @@ Do not use an option if it is not compatible with the selected Mode. For example
       <rect>
        <x>10</x>
        <y>390</y>
-       <width>21</width>
+       <width>211</width>
        <height>20</height>
       </rect>
      </property>
@@ -909,7 +795,7 @@ If not checked, the servers default setting will be used. Servers default is NUL
 Do not use an option if it is not compatible with the selected Mode. For example Travelmode &quot;CAR&quot; is not compatible with &quot;BikeSpeed&quot;. If you are unsure about compatibility, check OTP API Docs.</string>
      </property>
      <property name="text">
-      <string/>
+      <string>Level of detail (Precision Meters):</string>
      </property>
      <property name="checked">
       <bool>false</bool>
@@ -957,19 +843,6 @@ Do not use an option if it is not compatible with the selected Mode. For example
       </rect>
      </property>
     </widget>
-    <widget class="QLabel" name="label_19">
-     <property name="geometry">
-      <rect>
-       <x>40</x>
-       <y>240</y>
-       <width>181</width>
-       <height>21</height>
-      </rect>
-     </property>
-     <property name="text">
-      <string>Only Wheelchair accessible routes:</string>
-     </property>
-    </widget>
     <widget class="QCheckBox" name="Isochrones_Wheelchair_Use">
      <property name="enabled">
       <bool>true</bool>
@@ -978,7 +851,7 @@ Do not use an option if it is not compatible with the selected Mode. For example
       <rect>
        <x>10</x>
        <y>240</y>
-       <width>21</width>
+       <width>211</width>
        <height>20</height>
       </rect>
      </property>
@@ -988,7 +861,7 @@ If not checked, the servers default setting will be used. Servers default is NUL
 Do not use an option if it is not compatible with the selected Mode. For example Travelmode &quot;CAR&quot; is not compatible with &quot;BikeSpeed&quot;. If you are unsure about compatibility, check OTP API Docs.</string>
      </property>
      <property name="text">
-      <string/>
+      <string>Only Wheelchair accessible routes:</string>
      </property>
      <property name="checked">
       <bool>false</bool>
@@ -1002,7 +875,7 @@ Do not use an option if it is not compatible with the selected Mode. For example
       <rect>
        <x>10</x>
        <y>120</y>
-       <width>21</width>
+       <width>211</width>
        <height>20</height>
       </rect>
      </property>
@@ -1012,23 +885,10 @@ If not checked, the servers default setting will be used. Servers default is NUL
 Do not use an option if it is not compatible with the selected Mode. For example Travelmode &quot;CAR&quot; is not compatible with &quot;BikeSpeed&quot;. If you are unsure about compatibility, check OTP API Docs.</string>
      </property>
      <property name="text">
-      <string/>
+      <string>Bike Speed in km/h:</string>
      </property>
      <property name="checked">
       <bool>false</bool>
-     </property>
-    </widget>
-    <widget class="QLabel" name="label_20">
-     <property name="geometry">
-      <rect>
-       <x>40</x>
-       <y>120</y>
-       <width>181</width>
-       <height>21</height>
-      </rect>
-     </property>
-     <property name="text">
-      <string>Bike Speed in km/h:</string>
      </property>
     </widget>
     <widget class="QDoubleSpinBox" name="Isochrones_BikeSpeed">
