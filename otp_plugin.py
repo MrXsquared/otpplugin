@@ -25,7 +25,7 @@ from qgis.PyQt.QtCore import QSettings, QTranslator, qVersion, QCoreApplication
 from qgis.PyQt.QtGui import QIcon
 from qgis.PyQt.QtWidgets import QAction, QFileDialog
 from PyQt5.QtNetwork import  QNetworkAccessManager, QNetworkRequest
-from PyQt5.QtCore import QCoreApplication, QUrl
+from PyQt5.QtCore import *
 from qgis.core import *
 from qgis.utils import *
 
@@ -215,15 +215,24 @@ class OpenTripPlannerPlugin:
         filename, _filter = QFileDialog.getSaveFileName(self.dlg, "Select output file ","", '*.*')
         self.dlg.GeneralSettings_SavePath.setText(filename)
 
-    def Isochrones_RequestIsochrones(self, isochrones_selectedLayer, isochrones_fieldnames):     
+    def Isochrones_RequestIsochrones(self, isochrones_selectedLayer, Isochrones_Inputlayer_Fieldnames):     
         #isochrones_selectedLayer = iface.activeLayer() #Uses the currently selected layer in layerslist from qgis browser but we will use the one from isochrones_maplayerselection bzw. QgsMapLayerComboBox
 
         # Setting up Override Button context
         ctx = QgsExpressionContext(QgsExpressionContextUtils.globalProjectLayerScopes(isochrones_selectedLayer)) #This context will be able to evaluate global, project, and layer variables
         
         # Preparing Features
-        features = isochrones_selectedLayer.getFeatures()
-
+        Inputlayer_Features = isochrones_selectedLayer.getFeatures()
+        
+        # Create the Vectorlayer
+        Isochrones_Memorylayer_VL = QgsVectorLayer("Polygon?crs=epsg:4326", "Isochrones", "memory") # Create temporary polygon layer (output file)
+        Isochrones_Memorylayer_PR = Isochrones_Memorylayer_VL.dataProvider() # No idea what pr stands for, just copied this name from all the examples on the web... probably provider??
+        Isochrones_Memorylayer_VL.startEditing() # Enter editing mode
+        Isochrones_Memorylayer_PR.addAttributes(isochrones_selectedLayer.fields()) # Copy all fieldnames of inputlayer to outputlayer  
+        Isochrones_Memorylayer_PR.addAttributes( [QgsField("Isochrone_UID", QVariant.Int),QgsField("Isochrone_Error", QVariant.String),QgsField("Isochrone_URL", QVariant.String),QgsField("Isochrone_Time",QVariant.Int)]) # Add Error and URL Field to outputlayer
+        Inputlayer_outFeat = QgsFeature() # set QgsFeature
+        
+        
         # Savelocation
         otp_plugin_location = os.path.realpath(os.path.join(os.getcwd(), os.path.dirname(__file__))) #Read path of this plugin
         tmp_save_location = os.path.join(otp_plugin_location, 'temp_files\\')  #Concat path of this plugin to save location of temporary shapefiles
@@ -236,15 +245,18 @@ class OpenTripPlannerPlugin:
         destCrs = QgsCoordinateReferenceSystem("EPSG:4326") # and set destination CRS to WGS 84 (OTP can only understand EPSG:4326) 
         tr = QgsCoordinateTransform(sourceCrs, destCrs, QgsProject.instance()) # Setting up transformation
         
-        for feature in features:
+        for Inputlayer_Feature in Inputlayer_Features:
+            # Initial Variables
+            Isochrones_Error = '' # Empty the error var
+            
             # retrieve every feature with its geometry and attributes
-            print("Feature ID: ", feature.id())
+            print("Feature ID: ", Inputlayer_Feature.id())
             
             # Override Button Feature
-            ctx.setFeature(feature) #Setting context to current feature
+            ctx.setFeature(Inputlayer_Feature) #Setting context to current feature
             
             # Feature Geometry
-            geom = feature.geometry() # fetch geometry of current feature
+            geom = Inputlayer_Feature.geometry() # fetch geometry of current feature
             geom.transform(tr) # Transform geometry to WGS 84 (We prepared this outside the loop)
             pointgeom = geom.asPoint() #Read Point geometry
             x = round(pointgeom.x(),8) #Read X-Value
@@ -252,8 +264,13 @@ class OpenTripPlannerPlugin:
             print("PointX: ", x, " | PointY: ", y)
             
             # Feature Attributes
-            attrs = feature.attributes() # fetch attributes
-            print(attrs) # attrs is a list. It contains all the attribute values of this feature
+            Inputlayer_Attributes = Inputlayer_Feature.attributes() # fetch attributes
+            print(Inputlayer_Attributes) # attrs is a list. It contains all the attribute values of this feature
+            
+            # Copy Attributes to outputlayer
+            Inputlayer_outFeat.setAttributes(Inputlayer_Feature.attributes()) # set the attributes
+            print (Inputlayer_Attributes[0])
+            Isochrones_Memorylayer_PR.addFeatures([Inputlayer_outFeat]) # Add attributes of inputlayer to outputlayer
             
             #Check where to gather attributes from: GUI or Layer? 
             #WalkSpeed
@@ -452,27 +469,44 @@ class OpenTripPlannerPlugin:
                             Isochrones_AdditionalParameters_URLstring + # Additional Parameters entered as OTP-Readable string -> User responsibility
                             "&cutoffSec=" + str(Isochrones_Interval_URLstring) # Interval-Integers are taken as comma separated string, then split into list and then joined to string with leading "&cutoffSec=". The first interval therefore has no leading "&cutoffSec=" thats why we add it here
                             )
-                            
+                          
             #Request Isochrones and save zip
-            #Worki: https://api.digitransit.fi/routing/v1/routers/hsl/isochrone?fromPlace=60.169,24.938&mode=WALK,TRANSIT&date=2019-11-01&time=08:00:00&maxWalkDistance=500&cutoffSec=1800&cutoffSec=3600
+            #Working example: https://api.digitransit.fi/routing/v1/routers/hsl/isochrone?fromPlace=60.169,24.938&mode=WALK,TRANSIT&date=2019-11-01&time=08:00:00&maxWalkDistance=500&cutoffSec=1800&cutoffSec=3600
             url = isochrone_url #'https://api.digitransit.fi/routing/v1/routers/hsl/index/graphql'
             print('url: ' + url)
-            #r = requests.get(url, headers={"accept":"application/x-zip-compressed"}) # Sending request to server. Using shapefiles to avoid invalid geometries on high level of detail + geojson throwback seems to be limited to 4 decimals.
-            #with open(tmp_save_location + 'isochrones.zip', 'wb') as f: # Write shapefile to temp location
-            #    f.write(r.content) # write zip content
+            #try:
+            #    r = requests.get(url, headers={"accept":"application/x-zip-compressed"}) # Sending request to server. Using shapefiles to avoid invalid geometries on high level of detail + geojson throwback seems to be limited to 4 decimals.
+            #except:
+            #    Isochrones_Error = 'Request failed'   
+            #try:                
+            #    with open(tmp_save_location + 'isochrones.zip', 'wb') as f: # Write shapefile to temp location
+            #        f.write(r.content) # write zip content
+            #except:
+            #    Isochrones_Error = 'Failed to write shapefile to harddrive'
             
-            #unzip file
-            #with zipfile.ZipFile(tmp_save_location + 'isochrones.zip', 'r') as zip_ref:
-            #    zip_ref.extractall(tmp_save_location)            
+            try:
+                #unzip file
+                with zipfile.ZipFile(tmp_save_location + 'isochrones.zip', 'r') as zip_ref:
+                    zip_ref.extractall(tmp_save_location) 
+   
+                #load file
+                tmp_isochrone_shapefile = iface.addVectorLayer(tmp_save_location + "null.shp", "null", "ogr")
+                
+               
             
-            #load file
-            #tmp_isochrone_shapefile = iface.addVectorLayer(tmp_save_location + "null.shp", "null", "ogr")
+            except:
+                Isochrones_Error = 'Invalid response file' 
             
-            #Just testing stuff below...
+            #iterate trough isochrone
+            # for blablubb in oinkoink
+            #Inputlayer_Feature['Isochrone_URL'] = isochrone_url
+            #outFeat.setGeometry(Inputlayer_Feature.geometry())
+                        
+            #Just testing stuff...
             print(self.dlg.Isochrones_WalkSpeed_Override.vectorLayer())
             print(isochrone_url)
             self.iface.messageBar().pushMessage(
-            "Success", "Function Isochrones_RequestIsochrones run! URL: " + isochrone_url + " - " + str(isochrones_fieldnames) + str(isochrones_selectedLayer) + str(self.dlg.Isochrones_WalkSpeed_Override.vectorLayer()),
+            "Success", "Function Isochrones_RequestIsochrones run! URL: " + isochrone_url + " - " + str(Isochrones_Inputlayer_Fieldnames) + str(isochrones_selectedLayer) + str(self.dlg.Isochrones_WalkSpeed_Override.vectorLayer()) + ' ' + str(Isochrones_Error),
             level=Qgis.Success, duration=3) 
 
             # Retrieve HTTP meta-data
@@ -486,13 +520,21 @@ class OpenTripPlannerPlugin:
             #self.iface.messageBar().pushMessage(
             #"Success", "HTTP GET Request via Python requests: " + "requeststatus: " + requeststatuscode + " requestheader: " + requestheader + " requestencoding: " + requestencoding + " responseheader: " + responseheader + " url: " + url,
             #level=Qgis.Success, duration=3) 
+        
+        #END OF LOOP
+        
+        # Isochrones Memory VectorLayer
+        Isochrones_Memorylayer_VL.commitChanges() # Commit changes
+        QgsProject.instance().addMapLayer(Isochrones_Memorylayer_VL)# Show in project
+            
+            
             
     def isochrones_maplayerselection(self): # Outsourcing layerselection to this function to avoid repeading the same code everywhere (Reference: https://gis.stackexchange.com/a/225659/107424)
         layers = QgsProject.instance().layerTreeRoot().children() # Fetch available layers
         self.dlg.Isochrones_SelectInputLayer.setFilters(QgsMapLayerProxyModel.PointLayer) # Filter out all layers except Point layers
         self.isochrones_selectedLayer = self.dlg.Isochrones_SelectInputLayer.currentLayer() # Using the currently selected layer in QgsMapLayerComboBox as selectedLayer
         isochrones_selectedLayer = self.isochrones_selectedLayer # I could just replace all isochrones_selectedLayer variables by self.isochrones_selectedLayer which would actually make more sense, but got lost in search and replace ending up in a mess...
-        self.isochrones_fieldnames = [field.name() for field in isochrones_selectedLayer.fields()] # Receive isochrones_fieldnames from selected layer
+        self.Isochrones_Inputlayer_Fieldnames = [field.name() for field in isochrones_selectedLayer.fields()] # Receive Isochrones_Inputlayer_Fieldnames from selected layer
         
         # Setting up QgsOverrideButtons (Reference: https://gis.stackexchange.com/a/350993/107424). Has to be done here, so they get updated when the layer selection has changed...
         #WalkSpeed
@@ -554,7 +596,7 @@ class OpenTripPlannerPlugin:
         # Calling Functions on button click
         self.dlg.GeneralSettings_SelectSavePath.clicked.connect(self.select_output_folder) #Open file dialog when hitting button
         self.dlg.GeneralSettings_Save.clicked.connect(self.store_variables) #Call store_Variables function when clicking on save button       
-        self.dlg.Isochrones_RequestIsochrones.clicked.connect(lambda: self.Isochrones_RequestIsochrones(self.isochrones_selectedLayer, self.isochrones_fieldnames)) #Call Isochrones_RequestIsochrones function when clicking on RequestIsochrones button and handing over isochrones_selectedLayer. lambda function necessary to do this... (Reference: https://gis.stackexchange.com/a/351167/107424)
+        self.dlg.Isochrones_RequestIsochrones.clicked.connect(lambda: self.Isochrones_RequestIsochrones(self.isochrones_selectedLayer, self.Isochrones_Inputlayer_Fieldnames)) #Call Isochrones_RequestIsochrones function when clicking on RequestIsochrones button and handing over isochrones_selectedLayer. lambda function necessary to do this... (Reference: https://gis.stackexchange.com/a/351167/107424)
               
         # show the dialog
         self.dlg.show()
