@@ -217,7 +217,9 @@ class OpenTripPlannerPlugin:
 
     def Isochrones_RequestIsochrones(self, isochrones_selectedLayer, Isochrones_Inputlayer_Fieldnames):     
         #isochrones_selectedLayer = iface.activeLayer() #Uses the currently selected layer in layerslist from qgis browser but we will use the one from isochrones_maplayerselection bzw. QgsMapLayerComboBox
-
+        isochrone_uid_counter = 0
+        isochrone_id_counter = 0
+        
         # Setting up Override Button context
         ctx = QgsExpressionContext(QgsExpressionContextUtils.globalProjectLayerScopes(isochrones_selectedLayer)) #This context will be able to evaluate global, project, and layer variables
         
@@ -225,11 +227,12 @@ class OpenTripPlannerPlugin:
         Inputlayer_Features = isochrones_selectedLayer.getFeatures()
         
         # Create the Vectorlayer
-        Isochrones_Memorylayer_VL = QgsVectorLayer("Polygon?crs=epsg:4326", "Isochrones", "memory") # Create temporary polygon layer (output file)
+        Isochrones_Memorylayer_VL = QgsVectorLayer("MultiPolygon?crs=epsg:4326", "Isochrones", "memory") # Create temporary polygon layer (output file)
         Isochrones_Memorylayer_PR = Isochrones_Memorylayer_VL.dataProvider() # No idea what pr stands for, just copied this name from all the examples on the web... probably provider??
         Isochrones_Memorylayer_VL.startEditing() # Enter editing mode
+        Isochrones_Memorylayer_PR.addAttributes([QgsField("Isochrone_Time",QVariant.Int),QgsField("Isochrone_UID", QVariant.Int),QgsField("Isochrone_ID", QVariant.Int),QgsField("Isochrone_Error", QVariant.String),QgsField("Isochrone_URL", QVariant.String)]) # Add Error and URL Field to outputlayer        
         Isochrones_Memorylayer_PR.addAttributes(isochrones_selectedLayer.fields()) # Copy all fieldnames of inputlayer to outputlayer  
-        Isochrones_Memorylayer_PR.addAttributes( [QgsField("Isochrone_UID", QVariant.Int),QgsField("Isochrone_Error", QVariant.String),QgsField("Isochrone_URL", QVariant.String),QgsField("Isochrone_Time",QVariant.Int)]) # Add Error and URL Field to outputlayer
+        Inputlayer_NumberOfFields = isochrones_selectedLayer.fields().count() # count number of fields in inputlayer
         Inputlayer_outFeat = QgsFeature() # set QgsFeature
         
         
@@ -247,7 +250,7 @@ class OpenTripPlannerPlugin:
         
         for Inputlayer_Feature in Inputlayer_Features:
             # Initial Variables
-            Isochrones_Error = '' # Empty the error var
+            Isochrones_Error = 'No Error' # Empty the error var
             
             # retrieve every feature with its geometry and attributes
             print("Feature ID: ", Inputlayer_Feature.id())
@@ -265,12 +268,12 @@ class OpenTripPlannerPlugin:
             
             # Feature Attributes
             Inputlayer_Attributes = Inputlayer_Feature.attributes() # fetch attributes
-            print(Inputlayer_Attributes) # attrs is a list. It contains all the attribute values of this feature
+            print(str(Inputlayer_Attributes)) # attrs is a list. It contains all the attribute values of this feature
             
             # Copy Attributes to outputlayer
             Inputlayer_outFeat.setAttributes(Inputlayer_Feature.attributes()) # set the attributes
-            print (Inputlayer_Attributes[0])
-            Isochrones_Memorylayer_PR.addFeatures([Inputlayer_outFeat]) # Add attributes of inputlayer to outputlayer
+            #print (Inputlayer_Attributes[0])
+            
             
             #Check where to gather attributes from: GUI or Layer? 
             #WalkSpeed
@@ -470,44 +473,72 @@ class OpenTripPlannerPlugin:
                             "&cutoffSec=" + str(Isochrones_Interval_URLstring) # Interval-Integers are taken as comma separated string, then split into list and then joined to string with leading "&cutoffSec=". The first interval therefore has no leading "&cutoffSec=" thats why we add it here
                             )
                           
-            #Request Isochrones and save zip
+            #create url
             #Working example: https://api.digitransit.fi/routing/v1/routers/hsl/isochrone?fromPlace=60.169,24.938&mode=WALK,TRANSIT&date=2019-11-01&time=08:00:00&maxWalkDistance=500&cutoffSec=1800&cutoffSec=3600
             url = isochrone_url #'https://api.digitransit.fi/routing/v1/routers/hsl/index/graphql'
-            print('url: ' + url)
-            #try:
-            #    r = requests.get(url, headers={"accept":"application/x-zip-compressed"}) # Sending request to server. Using shapefiles to avoid invalid geometries on high level of detail + geojson throwback seems to be limited to 4 decimals.
-            #except:
-            #    Isochrones_Error = 'Request failed'   
-            #try:                
-            #    with open(tmp_save_location + 'isochrones.zip', 'wb') as f: # Write shapefile to temp location
-            #        f.write(r.content) # write zip content
-            #except:
-            #    Isochrones_Error = 'Failed to write shapefile to harddrive'
+            #print('url: ' + url)
             
+            #use lokal shp for testing to avoid bombing the server with requests :)
+            #request and download file
             try:
-                #unzip file
+                r = requests.get(url, headers={"accept":"application/x-zip-compressed"}) # Sending request to server. Using shapefiles to avoid invalid geometries on high level of detail + geojson throwback seems to be limited to 4 decimals.
+            except:
+                Isochrones_Error = 'Error: Request failed' 
+                print(Isochrones_Error)            
+            
+            #save file
+            try:                
+                with open(tmp_save_location + 'isochrones.zip', 'wb') as f: # Write shapefile to temp location
+                    f.write(r.content) # write zip content
+            except:
+                Isochrones_Error = 'Error: Failed to write shapefile to harddrive'
+                print(Isochrones_Error)
+                
+            #unzip file
+            try:
                 with zipfile.ZipFile(tmp_save_location + 'isochrones.zip', 'r') as zip_ref:
                     zip_ref.extractall(tmp_save_location) 
-   
-                #load file
-                tmp_isochrone_shapefile = iface.addVectorLayer(tmp_save_location + "null.shp", "null", "ogr")
-                
-               
-            
             except:
-                Isochrones_Error = 'Invalid response file' 
+                Isochrones_Error = 'Error: unzipping failed!'
+                print(Isochrones_Error)
+   
+            #load file
+            #tmp_isochrone_shapefile = iface.addVectorLayer(tmp_save_location + "null.shp", "null", "ogr") #no need to add layer to canvas
+            try:
+                isochrone_responseLayer = QgsVectorLayer(tmp_save_location + "null.shp", "null", "ogr") # load just downloaded file as vector layer
+            except:
+                Isochrones_Error = 'Error: loading null.shp failed'
+                print(Isochrones_Error)
             
+            #get features of file
+            Isochrone_Features = isochrone_responseLayer.getFeatures() # get features of just downloaded isochrone
+            if not isochrone_responseLayer.isValid():
+                print("Layer failed to load!")
+       
             #iterate trough isochrone
-            # for blablubb in oinkoink
-            #Inputlayer_Feature['Isochrone_URL'] = isochrone_url
-            #outFeat.setGeometry(Inputlayer_Feature.geometry())
+            isochrone_id_counter = isochrone_id_counter + 1
+            for Isochrone_Feature in Isochrone_Features:
+                isochrone_uid_counter = isochrone_uid_counter + 1
+                Isochrones_Memorylayer_PR.addFeature(Isochrone_Feature) # copy features of responselayer including geometry and attributes (it is always only one attribute) to new layer
+                attrs_isochrone = { 1 : isochrone_uid_counter, 2 : isochrone_id_counter, 3 : Isochrones_Error , 4 : url } # set further generic attributes
+                Isochrones_Memorylayer_PR.changeAttributeValues({ Isochrone_Feature.id() : attrs_isochrone }) # change attribute values of new layer to the just set ones
+                for i in range(0, Inputlayer_NumberOfFields): # iterate over new layer as many fields as the input layer has
+                    attrs_inputlayer = { i + 5 : Inputlayer_Attributes[i] } # set attributes of inputlayer (+5 because we added 5 new fields before)
+                    Isochrones_Memorylayer_PR.changeAttributeValues({ Isochrone_Feature.id() : attrs_inputlayer }) # change attribute values of new layer to the ones from inputlayer 
+                Isochrones_Memorylayer_VL.updateFields() # make sure to fetch changes from the provider
+
+            
+            #except:
+            #Isochrones_Error = 'Error: Invalid response file' 
+            
+            
                         
             #Just testing stuff...
-            print(self.dlg.Isochrones_WalkSpeed_Override.vectorLayer())
+            #print(self.dlg.Isochrones_WalkSpeed_Override.vectorLayer())
             print(isochrone_url)
-            self.iface.messageBar().pushMessage(
-            "Success", "Function Isochrones_RequestIsochrones run! URL: " + isochrone_url + " - " + str(Isochrones_Inputlayer_Fieldnames) + str(isochrones_selectedLayer) + str(self.dlg.Isochrones_WalkSpeed_Override.vectorLayer()) + ' ' + str(Isochrones_Error),
-            level=Qgis.Success, duration=3) 
+            #self.iface.messageBar().pushMessage(
+            #"Success", "Function Isochrones_RequestIsochrones run! URL: " + isochrone_url + " - " + str(Isochrones_Inputlayer_Fieldnames) + str(isochrones_selectedLayer) + str(self.dlg.Isochrones_WalkSpeed_Override.vectorLayer()) + ' ' + str(Isochrones_Error),
+            #level=Qgis.Success, duration=3) 
 
             # Retrieve HTTP meta-data
             #print(r.status_code)
