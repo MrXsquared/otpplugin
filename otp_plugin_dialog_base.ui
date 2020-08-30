@@ -1084,6 +1084,9 @@ Do not use an option if it is not compatible with the selected Mode. For example
        <height>41</height>
       </rect>
      </property>
+     <property name="toolTip">
+      <string>Server URL, e.g.: https://api.digitransit.fi/routing/v1/routers/hsl/</string>
+     </property>
      <property name="tabStopWidth">
       <number>80</number>
      </property>

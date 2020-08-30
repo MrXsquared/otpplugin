@@ -35,10 +35,11 @@ from .resources import *
 from .otp_plugin_dialog import OpenTripPlannerPluginDialog
 from osgeo import ogr
 import os.path
-import requests
+import urllib.request
+import urllib
 import os
 import zipfile
-from requests.exceptions import HTTPError
+
 
 
 class OpenTripPlannerPlugin:
@@ -485,19 +486,23 @@ class OpenTripPlannerPlugin:
             #create url
             #Working example: https://api.digitransit.fi/routing/v1/routers/hsl/isochrone?fromPlace=60.169,24.938&mode=WALK,TRANSIT&date=2019-11-01&time=08:00:00&maxWalkDistance=500&cutoffSec=1800&cutoffSec=3600
             isochrone_url = isochrone_url #'https://api.digitransit.fi/routing/v1/routers/hsl/index/graphql'
-
+            
             #use lokal shp for testing to avoid bombing the server with requests :)
             #request and download file
             try:
-                r = requests.get(isochrone_url, headers={"accept":"application/x-zip-compressed"}) # Sending request to server. Using shapefiles to avoid invalid geometries on high level of detail + geojson throwback seems to be limited to 4 decimals.
+                isochrone_headers = {"accept":"application/x-zip-compressed"}
+                isochrone_request = urllib.request.Request(isochrone_url, headers=isochrone_headers)
+                isochrone_response = urllib.request.urlopen(isochrone_request)
+                #r = requests.get(isochrone_url, headers={"accept":"application/x-zip-compressed"}, proxies=urllib.request.getproxies()) # Sending request to server. Using shapefiles to avoid invalid geometries on high level of detail + geojson throwback seems to be limited to 4 decimals.
             except:
                 Isochrones_Error = 'Error: Request failed' 
-                print(Isochrones_Error)            
+                print(Isochrones_Error)
             
             #save file
             try:                
                 with open(tmp_save_location + 'isochrones.zip', 'wb') as f: # Write shapefile to temp location
-                    f.write(r.content) # write zip content
+                    f.write(isochrone_response.read())
+                    #f.write(r.content) # write zip content
             except:
                 Isochrones_Error = 'Error: Failed to write response .zip archive to harddrive'
                 print(Isochrones_Error)
