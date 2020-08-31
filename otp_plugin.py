@@ -245,7 +245,6 @@ class OpenTripPlannerPlugin:
         Inputlayer_NumberOfFields = isochrones_selectedLayer.fields().count() # count number of fields in inputlayer
         Inputlayer_outFeat = QgsFeature() # set QgsFeature
         
-        
         # Savelocation
         otp_plugin_location = os.path.realpath(os.path.join(os.getcwd(), os.path.dirname(__file__))) #Read path of this plugin
         tmp_save_location = os.path.join(otp_plugin_location, 'temp_files\\')  #Concat path of this plugin to save location of temporary shapefiles
@@ -253,14 +252,22 @@ class OpenTripPlannerPlugin:
         # General Settings
         ServerURL = 'https://api.digitransit.fi/routing/v1/routers/hsl/' #self.dlg.GeneralSettings_ServerURL.toPlainText()        
  
-        #Preparing Transformation to WGS 84
+        # Preparing Transformation to WGS 84
         sourceCrs = QgsCoordinateReferenceSystem(isochrones_selectedLayer.crs().authid()) # Read CRS of input layer
         destCrs = QgsCoordinateReferenceSystem("EPSG:4326") # and set destination CRS to WGS 84 (OTP can only understand EPSG:4326) 
         tr = QgsCoordinateTransform(sourceCrs, destCrs, QgsProject.instance()) # Setting up transformation
         
+        # Preparing Progressbar
+        progressbar_featurecount = isochrones_selectedLayer.featureCount()
+        progressbar_percent = 0
+        progressbar_counter = 0
+        self.dlg.Isochrones_ProgressBar.setValue(progressbar_percent)
+        
         for Inputlayer_Feature in Inputlayer_Features:
+        
             # Initial Variables
             Isochrones_Error = 'Success: No Error' # Empty the error var
+            progressbar_counter = progressbar_counter + 1
                 
             # retrieve every feature with its geometry and attributes
             print("Feature ID: ", Inputlayer_Feature.id())
@@ -494,59 +501,60 @@ class OpenTripPlannerPlugin:
                 isochrone_request = urllib.request.Request(isochrone_url, headers=isochrone_headers)
                 isochrone_response = urllib.request.urlopen(isochrone_request)
                 #r = requests.get(isochrone_url, headers={"accept":"application/x-zip-compressed"}, proxies=urllib.request.getproxies()) # Sending request to server. Using shapefiles to avoid invalid geometries on high level of detail + geojson throwback seems to be limited to 4 decimals.
-            except:
-                Isochrones_Error = 'Error: Request failed' 
-                print(Isochrones_Error)
-            
             #save file
-            try:                
-                with open(tmp_save_location + 'isochrones.zip', 'wb') as f: # Write shapefile to temp location
-                    f.write(isochrone_response.read())
-                    #f.write(r.content) # write zip content
-            except:
-                Isochrones_Error = 'Error: Failed to write response .zip archive to harddrive'
-                print(Isochrones_Error)
-                
+                try:                
+                    with open(tmp_save_location + 'isochrones.zip', 'wb') as f: # Write shapefile to temp location
+                        f.write(isochrone_response.read())
+                        #f.write(r.content) # write zip content
             #unzip file
-            try:
-                with zipfile.ZipFile(tmp_save_location + 'isochrones.zip', 'r') as zip_ref:
-                    zip_ref.extractall(tmp_save_location) 
-            except:
-                Isochrones_Error = 'Error: unzipping response failed (likely because response not valid)'
-                print(Isochrones_Error)
-   
+                    try:
+                        with zipfile.ZipFile(tmp_save_location + 'isochrones.zip', 'r') as zip_ref:
+                            zip_ref.extractall(tmp_save_location) 
             #load file
-            #tmp_isochrone_shapefile = iface.addVectorLayer(tmp_save_location + "null.shp", "null", "ogr") #no need to add layer to canvas
-            try:
-                isochrone_responseLayer = QgsVectorLayer(tmp_save_location + "null.shp", "null", "ogr") # load just downloaded file as vector layer
+                        try:
+                            isochrone_responseLayer = QgsVectorLayer(tmp_save_location + "null.shp", "null", "ogr") # load just downloaded file as vector layer
+                        except:
+                            Isochrones_Error = 'Error: loading response failed'
+                            print(Isochrones_Error)                           
+                    except:
+                        Isochrones_Error = 'Error: response file not valid'
+                        print(Isochrones_Error)                          
+                except:
+                    Isochrones_Error = 'Error: writing response to harddrive failed'
+                    print(Isochrones_Error)            
             except:
-                Isochrones_Error = 'Error: loading response null.shp failed'
+                Isochrones_Error = 'Error: request failed' 
                 print(Isochrones_Error)
-            
+
             #get features of file
             Isochrone_Features = isochrone_responseLayer.getFeatures() # get features of just downloaded isochrone
             if not isochrone_responseLayer.isValid():
-                Isochrones_Error = 'Error: response file is not valid'
+                Isochrones_Error = 'Error: response layer is not valid'
                 print(Isochrones_Error)
        
             #iterate trough isochrone
             isochrone_id_counter = isochrone_id_counter + 1
             for Isochrone_Feature in Isochrone_Features:
                 isochrone_uid_counter = isochrone_uid_counter + 1
-                Isochrones_Memorylayer_PR.addFeature(Isochrone_Feature) # copy features of responselayer including geometry and attributes (it is always only one attribute) to new layer
-                attrs_isochrone = { 1 : isochrone_uid_counter, 2 : isochrone_id_counter, 3 : Isochrones_Error , 4 : isochrone_url } # set further generic attributes
-                Isochrones_Memorylayer_PR.changeAttributeValues({ Isochrone_Feature.id() : attrs_isochrone }) # change attribute values of new layer to the just set ones
-                for i in range(0, Inputlayer_NumberOfFields): # iterate over new layer as many fields as the input layer has
+                Isochrones_Memorylayer_PR.addFeature(Isochrone_Feature) # copy features of responselayer including geometry and attributes (it is always only one attribute) to new layer  
+                attrs_isochrone = { 1 : isochrone_uid_counter, 2 : isochrone_id_counter, 3 : Isochrones_Error , 4 : isochrone_url } # set further generic attributes    
+                Isochrones_Memorylayer_PR.changeAttributeValues({ Isochrone_Feature.id() : attrs_isochrone }) # change attribute values of new layer to the just set ones  
+                for i in range(0, Inputlayer_NumberOfFields): # iterate over new layer as many fields as the input layer has                
                     attrs_inputlayer = { i + 5 : Inputlayer_Attributes[i] } # set attributes of inputlayer (+5 because we added 5 new fields before)
                     Isochrones_Memorylayer_PR.changeAttributeValues({ Isochrone_Feature.id() : attrs_inputlayer }) # change attribute values of new layer to the ones from inputlayer 
+                    if Isochrones_Error != 'Success: No Error': # change stuff to null/dummy if isochrone is not valid
+                        err_attrs_isochrone = { 0 : 0 } # set time field to 0 on error
+                        Isochrones_Memorylayer_PR.changeAttributeValues({ Isochrone_Feature.id() : err_attrs_isochrone }) # set time field to 0 on error
+                        nullgeom = QgsGeometry.fromWkt("Polygon ((-0.1 -0.1, -0.1 0.1, 0.1 0.1, 0.1 -0.1, -0.1 -0.1))") # create pseudopolygon
+                        #nullgeom = QgsGeometry.fromWkt('') #causes issues with layer. Just stick to pseudopolygon
+                        Isochrones_Memorylayer_PR.changeGeometryValues({ Isochrone_Feature.id() : nullgeom }) # set geometry of feature to null on error 
                 Isochrones_Memorylayer_VL.updateFields() # make sure to fetch changes from the provider
-
-               
-            #except:
-            #Isochrones_Error = 'Error: Invalid response file' 
-
-                    
-            #Just testing stuff...
+            
+            # Update Progressbar
+            progressbar_percent = progressbar_counter / float(progressbar_featurecount) * 100
+            self.dlg.Isochrones_ProgressBar.setValue(progressbar_percent)
+            
+            # Just testing stuff...
             #print(self.dlg.Isochrones_WalkSpeed_Override.vectorLayer())
             #print(isochrone_url)
             #self.iface.messageBar().pushMessage(
@@ -565,16 +573,15 @@ class OpenTripPlannerPlugin:
             #"Success", "HTTP GET Request via Python requests: " + "requeststatus: " + requeststatuscode + " requestheader: " + requestheader + " requestencoding: " + requestencoding + " responseheader: " + responseheader + " url: " + url,
             #level=Qgis.Success, duration=3) 
             
-      
         #END OF LOOP
         
         # Isochrones Memory VectorLayer
         Isochrones_Memorylayer_VL.commitChanges() # Commit changes
         QgsProject.instance().addMapLayer(Isochrones_Memorylayer_VL)# Show in project
-               
-
-                            
-            
+        self.iface.messageBar().pushMessage("Done!", " Isochrones job finished", level=Qgis.Success, duration=3)        
+        
+        
+        
     def isochrones_maplayerselection(self): # Outsourcing layerselection to this function to avoid repeading the same code everywhere (Reference: https://gis.stackexchange.com/a/225659/107424)
         layers = QgsProject.instance().layerTreeRoot().children() # Fetch available layers
         self.dlg.Isochrones_SelectInputLayer.setFilters(QgsMapLayerProxyModel.PointLayer) # Filter out all layers except Point layers
@@ -635,7 +642,11 @@ class OpenTripPlannerPlugin:
             self.first_start = False
             self.dlg = OpenTripPlannerPluginDialog()
             self.isochrones_maplayerselection() # Calling maplayer selection on first startup to load layers into QgsMapLayerComboBox and initialize QgsOverrideButton stuff so selections can be done without actually using the QgsMapLayerComboBox (related to currentIndexChanged.connect(self.isochrones_maplayerselection) below)
-            
+        
+        # Setting GUI stuff for startup
+        self.dlg.Isochrones_Date.setDateTime(QtCore.QDateTime.currentDateTime()) # Set Dateselection to today on restart or firststart
+        self.dlg.Isochrones_ProgressBar.setValue(0) # Set Progressbar to 0 on restart or first start
+        
         # Calling Functions to update layer stuff when layerselection has changed
         self.dlg.Isochrones_SelectInputLayer.currentIndexChanged.connect(self.isochrones_maplayerselection) # Call function isochrones_maplayerselection to update all selection related stuff when selection has been changed
         
