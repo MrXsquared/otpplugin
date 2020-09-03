@@ -302,11 +302,15 @@ class OpenTripPlannerPlugin:
         self.Isochrones_BikeSpeed_setting = float(s.value("otp_plugin/Isochrones_BikeSpeed", 17.7))
         self.dlg.Isochrones_BikeSpeed.setValue(self.Isochrones_BikeSpeed_setting)
         
-        # Date #####
+        # Date
         self.Isochrones_Date_Use_setting = int(s.value("otp_plugin/Isochrones_Date_Use", 1))
         self.dlg.Isochrones_Date_Use.setChecked(self.Isochrones_Date_Use_setting)
         self.Isochrones_Date_setting = s.value("otp_plugin/Isochrones_Date", QtCore.QDateTime.currentDateTime())
-        self.dlg.Isochrones_Date.setDateTime(self.Isochrones_Date_setting)
+        # I guess nobody understands this date 'stuff'....
+        try:
+            self.dlg.Isochrones_Date.setDateTime(self.Isochrones_Date_setting)
+        except:
+            self.dlg.Isochrones_Date.setDate(self.Isochrones_Date_setting)
         
         # Time
         self.Isochrones_Time_Use_setting = int(s.value("otp_plugin/Isochrones_Time_Use", 1))
