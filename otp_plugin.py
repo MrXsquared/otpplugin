@@ -195,7 +195,7 @@ class OpenTripPlannerPlugin:
         s = QgsSettings()
         self.serverUrl = self.dlg.GeneralSettings_ServerURL.toPlainText() # read from textbox
         s.setValue("otp_plugin/GeneralSettings_ServerURL", self.serverUrl) # store as variable via QgsSettings
-        self.iface.messageBar().pushMessage("Success", "General settings stored!" + self.serverUrl, level=Qgis.Success, duration=3)
+        self.iface.messageBar().pushMessage("Success", "General settings stored! ServerURL: " + self.serverUrl, level=Qgis.Success, duration=3)
         
     def read_general_variables(self):
         s = QgsSettings()
@@ -308,9 +308,9 @@ class OpenTripPlannerPlugin:
         self.Isochrones_Date_setting = s.value("otp_plugin/Isochrones_Date", QtCore.QDateTime.currentDateTime())
         # I guess nobody understands this date 'stuff'....
         try:
-            self.dlg.Isochrones_Date.setDateTime(self.Isochrones_Date_setting)
+            self.dlg.Isochrones_Date.setDateTime(self.Isochrones_Date_setting) # Standard value
         except:
-            self.dlg.Isochrones_Date.setDate(self.Isochrones_Date_setting)
+            self.dlg.Isochrones_Date.setDate(self.Isochrones_Date_setting) # Stored value
         
         # Time
         self.Isochrones_Time_Use_setting = int(s.value("otp_plugin/Isochrones_Time_Use", 1))

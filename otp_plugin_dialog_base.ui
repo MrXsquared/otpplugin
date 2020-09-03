@@ -1099,6 +1099,9 @@ Do not use an option if it is not compatible with the selected Mode. For example
      <property name="alignment">
       <set>Qt::AlignCenter</set>
      </property>
+     <property name="wordWrap">
+      <bool>true</bool>
+     </property>
     </widget>
    </widget>
    <widget class="QWidget" name="tab_about">
