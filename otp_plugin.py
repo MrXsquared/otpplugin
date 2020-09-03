@@ -628,7 +628,7 @@ class OpenTripPlannerPlugin:
                 else:
                     Isochrones_Wheelchair_Value = self.dlg.Isochrones_Wheelchair.isChecked() # Receiving Value from GUI: QCheckBox
                 if Isochrones_Wheelchair_Value is not None: # Check if received value is NULL
-                    Isochrones_Wheelchair_URLstring = '&arriveBy=' + str(Isochrones_Wheelchair_Value) # Concatenate to URL string if option is used and value is not NULL
+                    Isochrones_Wheelchair_URLstring = '&wheelchair=' + str(Isochrones_Wheelchair_Value) # Concatenate to URL string if option is used and value is not NULL
                 else:
                     Isochrones_Wheelchair_URLstring = '' # Leave URL string empty if value is NULL (Empty, not NULL!!)
             else:
@@ -758,6 +758,7 @@ class OpenTripPlannerPlugin:
             #use lokal shp for testing to avoid bombing the server with requests :)
             #request and download file
             try:
+                # someone who knows how to use QGIS proxy settings, please insert here :)
                 isochrone_headers = {"accept":"application/x-zip-compressed"}
                 isochrone_request = urllib.request.Request(isochrone_url, headers=isochrone_headers)
                 isochrone_response = urllib.request.urlopen(isochrone_request)
