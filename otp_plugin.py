@@ -29,6 +29,7 @@ from PyQt5.QtCore import *
 from qgis.core import *
 from qgis.utils import *
 
+
 # Initialize Qt resources from file resources.py
 from .resources import *
 # Import the code for the dialog
@@ -189,34 +190,290 @@ class OpenTripPlannerPlugin:
                 action)
             self.iface.removeToolBarIcon(action)
  
-    # https://docs.qgis.org/testing/en/docs/pyqgis_developer_cookbook/settings.html 
-    def store_variables(self):
+    # https://docs.qgis.org/testing/en/docs/pyqgis_developer_cookbook/settings.html and https://gis.stackexchange.com/questions/114527/qgis-plugin-with-save-settings-dialog
+    def store_general_variables(self):
         s = QgsSettings()
-        s.setValue("otp_plugin/GeneralSettings_ServerURL", "http://localhost:8080/otp/routers/test/")
-        #s.setValue("otp_plugin/myint",  10)
-        #s.setValue("otp_plugin/myreal", 3.14)
-        #Just testing stuff below...
-        #print(s)
-        self.iface.messageBar().pushMessage(
-        "Success", "Function store_variables! Var: ",
-        level=Qgis.Success, duration=3)   
-    def read_variables(self):
+        self.serverUrl = self.dlg.GeneralSettings_ServerURL.toPlainText() # read from textbox
+        s.setValue("otp_plugin/GeneralSettings_ServerURL", self.serverUrl) # store as variable via QgsSettings
+        self.iface.messageBar().pushMessage("Success", "General settings stored!" + self.serverUrl, level=Qgis.Success, duration=3)
+        
+    def read_general_variables(self):
         s = QgsSettings()
-        ServerURL = s.value("myplugin/mytext", "http://localhost:8080/otp/routers/test/")
-        #myint  = s.value("myplugin/myint", 123)
-        #myreal = s.value("myplugin/myreal", 2.71)
-        #nonexistent = s.value("myplugin/nonexistent", None)
-        print(mytext)
-        print(myint)
-        print(myreal)
-        print(nonexistent)
-  
-    # Open File Dialog when
-    def select_output_folder(self):
-        #foldername, _filter = QFileDialog.getExistingDirectory(self.dlg, "Open Directory","",ShowDirsOnly)
-        filename, _filter = QFileDialog.getSaveFileName(self.dlg, "Select output file ","", '*.*')
-        self.dlg.GeneralSettings_SavePath.setText(filename)
+        #ServerURL = s.value("myplugin/mytext", "http://localhost:8080/otp/routers/test/")
+        self.serverUrl = s.value("otp_plugin/GeneralSettings_ServerURL", "") # read from variable via QgsSettings
+        if isinstance(self.serverUrl, str): self.dlg.GeneralSettings_ServerURL.setText(self.serverUrl) # set textbox text to variable from QgsSettings
+        #self.iface.messageBar().pushMessage("Success", "Function read_general_variables running! Var: " + self.serverUrl, level=Qgis.Success, duration=3)
 
+    def store_isochrone_variables(self):
+        s = QgsSettings()
+        
+        # Walk Speed
+        self.Isochrones_WalkSpeed_Use_setting = int(self.dlg.Isochrones_WalkSpeed_Use.isChecked())
+        s.setValue("otp_plugin/Isochrones_WalkSpeed_Use", self.Isochrones_WalkSpeed_Use_setting)
+        self.Isochrones_WalkSpeed_setting = float(self.dlg.Isochrones_WalkSpeed.value())
+        s.setValue("otp_plugin/Isochrones_WalkSpeed", self.Isochrones_WalkSpeed_setting)
+        
+        # Bike Speed
+        self.Isochrones_BikeSpeed_Use_setting = int(self.dlg.Isochrones_BikeSpeed_Use.isChecked())
+        s.setValue("otp_plugin/Isochrones_BikeSpeed_Use", self.Isochrones_BikeSpeed_Use_setting)
+        self.Isochrones_BikeSpeed_setting = float(self.dlg.Isochrones_BikeSpeed.value())
+        s.setValue("otp_plugin/Isochrones_BikeSpeed", self.Isochrones_BikeSpeed_setting)
+        
+        # Date
+        self.Isochrones_Date_Use_setting = int(self.dlg.Isochrones_Date_Use.isChecked())
+        s.setValue("otp_plugin/Isochrones_Date_Use", self.Isochrones_Date_Use_setting)
+        self.Isochrones_Date_setting = self.dlg.Isochrones_Date.date()
+        s.setValue("otp_plugin/Isochrones_Date", self.Isochrones_Date_setting)
+        
+        # Time
+        self.Isochrones_Time_Use_setting = int(self.dlg.Isochrones_Time_Use.isChecked())
+        s.setValue("otp_plugin/Isochrones_Time_Use", self.Isochrones_Time_Use_setting)
+        self.Isochrones_Time_setting = self.dlg.Isochrones_Time.time()
+        s.setValue("otp_plugin/Isochrones_Time", self.Isochrones_Time_setting)
+        
+        # ArriveBy
+        self.Isochrones_ArriveBy_Use_setting = int(self.dlg.Isochrones_ArriveBy_Use.isChecked())
+        s.setValue("otp_plugin/Isochrones_ArriveBy_Use", self.Isochrones_ArriveBy_Use_setting)
+        self.Isochrones_ArriveBy_setting = int(self.dlg.Isochrones_ArriveBy.isChecked())
+        s.setValue("otp_plugin/Isochrones_ArriveBy", self.Isochrones_ArriveBy_setting)
+        
+        # Wheelchair
+        self.Isochrones_Wheelchair_Use_setting = int(self.dlg.Isochrones_Wheelchair_Use.isChecked())
+        s.setValue("otp_plugin/Isochrones_Wheelchair_Use", self.Isochrones_Wheelchair_Use_setting)
+        self.Isochrones_Wheelchair_setting = int(self.dlg.Isochrones_Wheelchair.isChecked())
+        s.setValue("otp_plugin/Isochrones_Wheelchair", self.Isochrones_Wheelchair_setting)
+        
+        # Wait Reluctance
+        self.Isochrones_WaitReluctance_Use_setting = int(self.dlg.Isochrones_WaitReluctance_Use.isChecked())
+        s.setValue("otp_plugin/Isochrones_WaitReluctance_Use", self.Isochrones_WaitReluctance_Use_setting)
+        self.Isochrones_WaitReluctance_setting = float(self.dlg.Isochrones_WaitReluctance.value())
+        s.setValue("otp_plugin/Isochrones_WaitReluctance", self.Isochrones_WaitReluctance_setting)
+        
+        # Max Transfers
+        self.Isochrones_MaxTransfers_Use_setting = int(self.dlg.Isochrones_MaxTransfers_Use.isChecked())
+        s.setValue("otp_plugin/Isochrones_MaxTransfers_Use", self.Isochrones_MaxTransfers_Use_setting)
+        self.Isochrones_MaxTransfers_setting = int(self.dlg.Isochrones_MaxTransfers.value())
+        s.setValue("otp_plugin/Isochrones_MaxTransfers", self.Isochrones_MaxTransfers_setting)
+        
+        # Max Walkdistance
+        self.Isochrones_MaxWalkDistance_Use_setting = int(self.dlg.Isochrones_MaxWalkDistance_Use.isChecked())
+        s.setValue("otp_plugin/Isochrones_MaxWalkDistance_Use", self.Isochrones_MaxWalkDistance_Use_setting)
+        self.Isochrones_MaxWalkDistance_setting = int(self.dlg.Isochrones_MaxWalkDistance.value())
+        s.setValue("otp_plugin/Isochrones_MaxWalkDistance", self.Isochrones_MaxWalkDistance_setting)
+        
+        # Max Offroaddistance
+        self.Isochrones_MaxOffroadDistance_Use_setting = int(self.dlg.Isochrones_MaxOffroadDistance_Use.isChecked())
+        s.setValue("otp_plugin/Isochrones_MaxOffroadDistance_Use", self.Isochrones_MaxOffroadDistance_Use_setting)
+        self.Isochrones_MaxOffroadDistance_setting = int(self.dlg.Isochrones_MaxOffroadDistance.value())
+        s.setValue("otp_plugin/Isochrones_MaxOffroadDistance", self.Isochrones_MaxOffroadDistance_setting)
+        
+        # Precision Meters
+        self.Isochrones_PrecisionMeters_Use_setting = int(self.dlg.Isochrones_PrecisionMeters_Use.isChecked())
+        s.setValue("otp_plugin/Isochrones_PrecisionMeters_Use", self.Isochrones_PrecisionMeters_Use_setting)
+        self.Isochrones_PrecisionMeters_setting = int(self.dlg.Isochrones_PrecisionMeters.value())
+        s.setValue("otp_plugin/Isochrones_PrecisionMeters", self.Isochrones_PrecisionMeters_setting)
+        
+        # Cutoff Secs
+        self.Isochrones_Interval_setting = self.dlg.Isochrones_Interval.toPlainText()
+        s.setValue("otp_plugin/Isochrones_Interval", self.Isochrones_Interval_setting)
+        
+        # Mode
+        self.Isochrones_TransportationMode_setting = self.dlg.Isochrones_TransportationMode.toPlainText()
+        s.setValue("otp_plugin/Isochrones_TransportationMode", self.Isochrones_TransportationMode_setting)
+        
+        # Additional Parameters
+        self.Isochrones_AdditionalParameters_setting = self.dlg.Isochrones_AdditionalParameters.toPlainText()
+        s.setValue("otp_plugin/Isochrones_AdditionalParameters", self.Isochrones_AdditionalParameters_setting)
+        
+        self.iface.messageBar().pushMessage("Success", "Isochrone settings stored!", level=Qgis.Success, duration=3) 
+        
+    def read_isochrone_variables(self):
+        s = QgsSettings()
+        
+        # Walk Speed
+        self.Isochrones_WalkSpeed_Use_setting = int(s.value("otp_plugin/Isochrones_WalkSpeed_Use", 0))
+        self.dlg.Isochrones_WalkSpeed_Use.setChecked(self.Isochrones_WalkSpeed_Use_setting)
+        self.Isochrones_WalkSpeed_setting = float(s.value("otp_plugin/Isochrones_WalkSpeed", 4.828032))
+        self.dlg.Isochrones_WalkSpeed.setValue(self.Isochrones_WalkSpeed_setting)
+        
+        # Bike Speed
+        self.Isochrones_BikeSpeed_Use_setting = int(s.value("otp_plugin/Isochrones_BikeSpeed_Use", 0))
+        self.dlg.Isochrones_BikeSpeed_Use.setChecked(self.Isochrones_BikeSpeed_Use_setting)
+        self.Isochrones_BikeSpeed_setting = float(s.value("otp_plugin/Isochrones_BikeSpeed", 17.7))
+        self.dlg.Isochrones_BikeSpeed.setValue(self.Isochrones_BikeSpeed_setting)
+        
+        # Date #####
+        self.Isochrones_Date_Use_setting = int(s.value("otp_plugin/Isochrones_Date_Use", 1))
+        self.dlg.Isochrones_Date_Use.setChecked(self.Isochrones_Date_Use_setting)
+        self.Isochrones_Date_setting = s.value("otp_plugin/Isochrones_Date", QtCore.QDateTime.currentDateTime())
+        self.dlg.Isochrones_Date.setDate(self.Isochrones_Date_setting)
+        
+        # Time
+        self.Isochrones_Time_Use_setting = int(s.value("otp_plugin/Isochrones_Time_Use", 1))
+        self.dlg.Isochrones_Time_Use.setChecked(self.Isochrones_Time_Use_setting)
+        self.Isochrones_Time_setting = s.value("otp_plugin/Isochrones_Time", QTime.fromString('14:00:00'))
+        self.dlg.Isochrones_Time.setTime(self.Isochrones_Time_setting)
+        
+        # Arrive By
+        self.Isochrones_ArriveBy_Use_setting = int(s.value("otp_plugin/Isochrones_ArriveBy_Use", 0))
+        self.dlg.Isochrones_ArriveBy_Use.setChecked(self.Isochrones_ArriveBy_Use_setting)
+        self.Isochrones_ArriveBy_setting = int(s.value("otp_plugin/Isochrones_ArriveBy", 0))
+        self.dlg.Isochrones_ArriveBy.setChecked(self.Isochrones_ArriveBy_setting)
+        
+        # Wheelchair
+        self.Isochrones_Wheelchair_Use_setting = int(s.value("otp_plugin/Isochrones_Wheelchair_Use", 0))
+        self.dlg.Isochrones_Wheelchair_Use.setChecked(self.Isochrones_Wheelchair_Use_setting)
+        self.Isochrones_Wheelchair_setting = int(s.value("otp_plugin/Isochrones_Wheelchair", 0))
+        self.dlg.Isochrones_Wheelchair.setChecked(self.Isochrones_Wheelchair_setting)
+        
+        # Wait Reluctance
+        self.Isochrones_WaitReluctance_Use_setting = int(s.value("otp_plugin/Isochrones_WaitReluctance_Use", 0))
+        self.dlg.Isochrones_WaitReluctance_Use.setChecked(self.Isochrones_WaitReluctance_Use_setting)
+        self.Isochrones_WaitReluctance_setting = float(s.value("otp_plugin/Isochrones_WaitReluctance", 0.95))
+        self.dlg.Isochrones_WaitReluctance.setValue(self.Isochrones_WaitReluctance_setting)
+        
+        # Max Transfers
+        self.Isochrones_MaxTransfers_Use_setting = int(s.value("otp_plugin/Isochrones_MaxTransfers_Use", 0))
+        self.dlg.Isochrones_MaxTransfers_Use.setChecked(self.Isochrones_MaxTransfers_Use_setting)
+        self.Isochrones_MaxTransfers_setting = int(s.value("otp_plugin/Isochrones_MaxTransfers", 5))
+        self.dlg.Isochrones_MaxTransfers.setValue(self.Isochrones_MaxTransfers_setting)
+        
+        # Max WalkDistance
+        self.Isochrones_MaxWalkDistance_Use_setting = int(s.value("otp_plugin/Isochrones_MaxWalkDistance_Use", 0))
+        self.dlg.Isochrones_MaxWalkDistance_Use.setChecked(self.Isochrones_MaxWalkDistance_Use_setting)
+        self.Isochrones_MaxWalkDistance_setting = int(s.value("otp_plugin/Isochrones_MaxWalkDistance", 1000))
+        self.dlg.Isochrones_MaxWalkDistance.setValue(self.Isochrones_MaxWalkDistance_setting)
+        
+        # Max OffRoadDistance
+        self.Isochrones_MaxOffroadDistance_Use_setting = int(s.value("otp_plugin/Isochrones_MaxOffroadDistance_Use", 0))
+        self.dlg.Isochrones_MaxOffroadDistance_Use.setChecked(self.Isochrones_MaxOffroadDistance_Use_setting)
+        self.Isochrones_MaxOffroadDistance_setting = int(s.value("otp_plugin/Isochrones_MaxOffroadDistance", 150))
+        self.dlg.Isochrones_MaxOffroadDistance.setValue(self.Isochrones_MaxOffroadDistance_setting)
+        
+        # Precision Meters
+        self.Isochrones_PrecisionMeters_Use_setting = int(s.value("otp_plugin/Isochrones_PrecisionMeters_Use", 0))
+        self.dlg.Isochrones_PrecisionMeters_Use.setChecked(self.Isochrones_PrecisionMeters_Use_setting)
+        self.Isochrones_PrecisionMeters_setting = int(s.value("otp_plugin/Isochrones_PrecisionMeters", 200))
+        self.dlg.Isochrones_PrecisionMeters.setValue(self.Isochrones_PrecisionMeters_setting)
+        
+        # Cutoff Sec
+        self.Isochrones_Interval = s.value("otp_plugin/Isochrones_Interval", "60,120,180,240,300")
+        if isinstance(self.Isochrones_Interval, str): self.dlg.Isochrones_Interval.setText(self.Isochrones_Interval)
+        
+        # Mode
+        self.Isochrones_TransportationMode = s.value("otp_plugin/Isochrones_TransportationMode", "WALK,TRANSIT")
+        if isinstance(self.Isochrones_TransportationMode, str): self.dlg.Isochrones_TransportationMode.setText(self.Isochrones_TransportationMode)
+        
+        # Additional Parameters
+        self.Isochrones_AdditionalParameters = s.value("otp_plugin/Isochrones_AdditionalParameters", "")
+        if isinstance(self.Isochrones_AdditionalParameters, str): self.dlg.Isochrones_AdditionalParameters.setText(self.Isochrones_AdditionalParameters)
+        
+        #self.iface.messageBar().pushMessage("Success", "Function read_isochrone_variables running!", level=Qgis.Success, duration=3)
+
+    def restore_isochrone_variables(self):
+        s = QgsSettings()
+        #DefaultSettings
+        # Walk Speed
+        self.Isochrones_WalkSpeed_Use_setting = int(0)
+        self.dlg.Isochrones_WalkSpeed_Use.setChecked(self.Isochrones_WalkSpeed_Use_setting)
+        self.Isochrones_WalkSpeed_setting = float(4.828032)
+        self.dlg.Isochrones_WalkSpeed.setValue(self.Isochrones_WalkSpeed_setting)
+        
+        # Bike Speed
+        self.Isochrones_BikeSpeed_Use_setting = int(0)
+        self.dlg.Isochrones_BikeSpeed_Use.setChecked(self.Isochrones_BikeSpeed_Use_setting)
+        self.Isochrones_BikeSpeed_setting = float(17.7)
+        self.dlg.Isochrones_BikeSpeed.setValue(self.Isochrones_BikeSpeed_setting)
+        
+        # Date #####
+        self.Isochrones_Date_Use_setting = int(1)
+        self.dlg.Isochrones_Date_Use.setChecked(self.Isochrones_Date_Use_setting)
+        self.Isochrones_Date_setting = QDateTime(QtCore.QDateTime.currentDateTime())
+        self.dlg.Isochrones_Date.setDateTime(self.Isochrones_Date_setting)
+        
+        # Time
+        self.Isochrones_Time_Use_setting = int(1)
+        self.dlg.Isochrones_Time_Use.setChecked(self.Isochrones_Time_Use_setting)
+        self.Isochrones_Time_setting = QTime.fromString('14:00:00')
+        self.dlg.Isochrones_Time.setTime(self.Isochrones_Time_setting)
+        
+        # Arrive By
+        self.Isochrones_ArriveBy_Use_setting = int(0)
+        self.dlg.Isochrones_ArriveBy_Use.setChecked(self.Isochrones_ArriveBy_Use_setting)
+        self.Isochrones_ArriveBy_setting = int(0)
+        self.dlg.Isochrones_ArriveBy.setChecked(self.Isochrones_ArriveBy_setting)
+        
+        # Wheelchair
+        self.Isochrones_Wheelchair_Use_setting = int(0)
+        self.dlg.Isochrones_Wheelchair_Use.setChecked(self.Isochrones_Wheelchair_Use_setting)
+        self.Isochrones_Wheelchair_setting = int(0)
+        self.dlg.Isochrones_Wheelchair.setChecked(self.Isochrones_Wheelchair_setting)
+        
+        # Wait Reluctance
+        self.Isochrones_WaitReluctance_Use_setting = int(0)
+        self.dlg.Isochrones_WaitReluctance_Use.setChecked(self.Isochrones_WaitReluctance_Use_setting)
+        self.Isochrones_WaitReluctance_setting = float(0.95)
+        self.dlg.Isochrones_WaitReluctance.setValue(self.Isochrones_WaitReluctance_setting)
+        
+        # Max Transfers
+        self.Isochrones_MaxTransfers_Use_setting = int(0)
+        self.dlg.Isochrones_MaxTransfers_Use.setChecked(self.Isochrones_MaxTransfers_Use_setting)
+        self.Isochrones_MaxTransfers_setting = int(5)
+        self.dlg.Isochrones_MaxTransfers.setValue(self.Isochrones_MaxTransfers_setting)
+        
+        # Max WalkDistance
+        self.Isochrones_MaxWalkDistance_Use_setting = int(0)
+        self.dlg.Isochrones_MaxWalkDistance_Use.setChecked(self.Isochrones_MaxWalkDistance_Use_setting)
+        self.Isochrones_MaxWalkDistance_setting = int(1000)
+        self.dlg.Isochrones_MaxWalkDistance.setValue(self.Isochrones_MaxWalkDistance_setting)
+        
+        # Max OffRoadDistance
+        self.Isochrones_MaxOffroadDistance_Use_setting = int(0)
+        self.dlg.Isochrones_MaxOffroadDistance_Use.setChecked(self.Isochrones_MaxOffroadDistance_Use_setting)
+        self.Isochrones_MaxOffroadDistance_setting = int(150)
+        self.dlg.Isochrones_MaxOffroadDistance.setValue(self.Isochrones_MaxOffroadDistance_setting)
+        
+        # Precision Meters
+        self.Isochrones_PrecisionMeters_Use_setting = int(0)
+        self.dlg.Isochrones_PrecisionMeters_Use.setChecked(self.Isochrones_PrecisionMeters_Use_setting)
+        self.Isochrones_PrecisionMeters_setting = int(200)
+        self.dlg.Isochrones_PrecisionMeters.setValue(self.Isochrones_PrecisionMeters_setting)
+        
+        # Cutoff Sec
+        self.Isochrones_Interval = ""
+        if isinstance(self.Isochrones_Interval, str): self.dlg.Isochrones_Interval.setText(self.Isochrones_Interval)
+        
+        # Mode
+        self.Isochrones_TransportationMode = ""
+        if isinstance(self.Isochrones_TransportationMode, str): self.dlg.Isochrones_TransportationMode.setText(self.Isochrones_TransportationMode)
+        
+        # Additional Parameters
+        self.Isochrones_AdditionalParameters = ""
+        if isinstance(self.Isochrones_AdditionalParameters, str): self.dlg.Isochrones_AdditionalParameters.setText(self.Isochrones_AdditionalParameters)
+        
+        self.iface.messageBar().pushMessage("Success", "Default settings restored!", level=Qgis.Success, duration=3)
+        
+    def check_server_status(self):
+        #foldername, _filter = QFileDialog.getExistingDirectory(self.dlg, "Open Directory","",ShowDirsOnly)
+        #filename, _filter = QFileDialog.getSaveFileName(self.dlg, "Select output file ","", '*.*')
+        #self.dlg.GeneralSettings_SavePath.setText(filename)
+        #print(self.serverUrl)
+        
+        #Run Store-Variables-Function and Read-Stored-Variables-Function before so users do not have to click save button before checking status
+        self.store_general_variables()
+        self.read_general_variables()
+        servercheckrequest = urllib.request.Request(str(self.serverUrl))
+        try:
+            urllib.request.urlopen(servercheckrequest)
+            self.dlg.GeneralSettings_ServerStatusResult.setText("Server is Online :)")
+            self.dlg.GeneralSettings_ServerStatusResult.setStyleSheet("background-color: green; color: white ")
+        except urllib.error.URLError as urlerror:
+            self.dlg.GeneralSettings_ServerStatusResult.setText("Error: " + str(urlerror.reason))
+            self.dlg.GeneralSettings_ServerStatusResult.setStyleSheet("background-color: red; color: white ")
+        except urllib.error.HTTPError as httperror:
+            self.dlg.GeneralSettings_ServerStatusResult.setText("Error: " + str(httperror.code))
+            self.dlg.GeneralSettings_ServerStatusResult.setStyleSheet("background-color: red; color: white ")
+        
     def Isochrones_RequestIsochrones(self, isochrones_selectedLayer, Isochrones_Inputlayer_Fieldnames):     
         #isochrones_selectedLayer = iface.activeLayer() #Uses the currently selected layer in layerslist from qgis browser but we will use the one from isochrones_maplayerselection bzw. QgsMapLayerComboBox
         
@@ -250,7 +507,7 @@ class OpenTripPlannerPlugin:
         tmp_save_location = os.path.join(otp_plugin_location, 'temp_files\\')  #Concat path of this plugin to save location of temporary shapefiles
 
         # General Settings
-        ServerURL = 'https://api.digitransit.fi/routing/v1/routers/hsl/' #self.dlg.GeneralSettings_ServerURL.toPlainText()        
+        ServerURL = self.serverUrl #'https://api.digitransit.fi/routing/v1/routers/hsl/' #self.dlg.GeneralSettings_ServerURL.toPlainText()        
  
         # Preparing Transformation to WGS 84
         sourceCrs = QgsCoordinateReferenceSystem(isochrones_selectedLayer.crs().authid()) # Read CRS of input layer
@@ -285,7 +542,7 @@ class OpenTripPlannerPlugin:
             
             # Feature Attributes
             Inputlayer_Attributes = Inputlayer_Feature.attributes() # fetch attributes
-            print(str(Inputlayer_Attributes)) # attrs is a list. It contains all the attribute values of this feature
+            #print(str(Inputlayer_Attributes)) # attrs is a list. It contains all the attribute values of this feature
             
             # Copy Attributes to outputlayer
             Inputlayer_outFeat.setAttributes(Inputlayer_Feature.attributes()) # set the attributes
@@ -493,14 +750,14 @@ class OpenTripPlannerPlugin:
             #create url
             #Working example: https://api.digitransit.fi/routing/v1/routers/hsl/isochrone?fromPlace=60.169,24.938&mode=WALK,TRANSIT&date=2019-11-01&time=08:00:00&maxWalkDistance=500&cutoffSec=1800&cutoffSec=3600
             isochrone_url = isochrone_url #'https://api.digitransit.fi/routing/v1/routers/hsl/index/graphql'
-            
+            print("URL: " + str(isochrone_url))
             #use lokal shp for testing to avoid bombing the server with requests :)
             #request and download file
             try:
                 isochrone_headers = {"accept":"application/x-zip-compressed"}
                 isochrone_request = urllib.request.Request(isochrone_url, headers=isochrone_headers)
                 isochrone_response = urllib.request.urlopen(isochrone_request)
-                #r = requests.get(isochrone_url, headers={"accept":"application/x-zip-compressed"}, proxies=urllib.request.getproxies()) # Sending request to server. Using shapefiles to avoid invalid geometries on high level of detail + geojson throwback seems to be limited to 4 decimals.
+                #r = requests.get(isochrone_url, headers={"accept":"application/x-zip-compressed"}, proxies=urllib.request.getproxies()) # Sending request to server. Using shapefiles to avoid invalid geometries on high level of detail + geojson throwback seems to be limited to 4 decimals. # Using urllib instead of requests to avoid prerequesites installation fails
             #save file
                 try:                
                     with open(tmp_save_location + 'isochrones.zip', 'wb') as f: # Write shapefile to temp location
@@ -531,7 +788,9 @@ class OpenTripPlannerPlugin:
             if not isochrone_responseLayer.isValid():
                 Isochrones_Error = 'Error: response layer is not valid'
                 print(Isochrones_Error)
-       
+                
+            print(Isochrones_Error)
+            
             #iterate trough isochrone
             isochrone_id_counter = isochrone_id_counter + 1
             for Isochrone_Feature in Isochrone_Features:
@@ -553,6 +812,8 @@ class OpenTripPlannerPlugin:
             # Update Progressbar
             progressbar_percent = progressbar_counter / float(progressbar_featurecount) * 100
             self.dlg.Isochrones_ProgressBar.setValue(progressbar_percent)
+            
+            print("")
             
             # Just testing stuff...
             #print(self.dlg.Isochrones_WalkSpeed_Override.vectorLayer())
@@ -579,15 +840,15 @@ class OpenTripPlannerPlugin:
         Isochrones_Memorylayer_VL.commitChanges() # Commit changes
         QgsProject.instance().addMapLayer(Isochrones_Memorylayer_VL)# Show in project
         self.iface.messageBar().pushMessage("Done!", " Isochrones job finished", level=Qgis.Success, duration=3)        
-        
-        
+        print("Isochrones job done!")
         
     def isochrones_maplayerselection(self): # Outsourcing layerselection to this function to avoid repeading the same code everywhere (Reference: https://gis.stackexchange.com/a/225659/107424)
         layers = QgsProject.instance().layerTreeRoot().children() # Fetch available layers
         self.dlg.Isochrones_SelectInputLayer.setFilters(QgsMapLayerProxyModel.PointLayer) # Filter out all layers except Point layers
         self.isochrones_selectedLayer = self.dlg.Isochrones_SelectInputLayer.currentLayer() # Using the currently selected layer in QgsMapLayerComboBox as selectedLayer
         isochrones_selectedLayer = self.isochrones_selectedLayer # I could just replace all isochrones_selectedLayer variables by self.isochrones_selectedLayer which would actually make more sense, but got lost in search and replace ending up in a mess...
-        self.Isochrones_Inputlayer_Fieldnames = [field.name() for field in isochrones_selectedLayer.fields()] # Receive Isochrones_Inputlayer_Fieldnames from selected layer
+        if isochrones_selectedLayer is not None: # prevents showing python error when no point-layer is available
+            self.Isochrones_Inputlayer_Fieldnames = [field.name() for field in isochrones_selectedLayer.fields()] # Receive Isochrones_Inputlayer_Fieldnames from selected layer
         
         # Setting up QgsOverrideButtons (Reference: https://gis.stackexchange.com/a/350993/107424). Has to be done here, so they get updated when the layer selection has changed...
         #WalkSpeed
@@ -641,20 +902,29 @@ class OpenTripPlannerPlugin:
         if self.first_start == True:
             self.first_start = False
             self.dlg = OpenTripPlannerPluginDialog()
-            self.isochrones_maplayerselection() # Calling maplayer selection on first startup to load layers into QgsMapLayerComboBox and initialize QgsOverrideButton stuff so selections can be done without actually using the QgsMapLayerComboBox (related to currentIndexChanged.connect(self.isochrones_maplayerselection) below)
+            self.isochrones_maplayerselection() # Calling maplayer selection on first startup to load layers into QgsMapLayerComboBox and initialize QgsOverrideButton stuff so selections can be done without actually using the QgsMapLayerComboBox (related to currentIndexChanged.connect(self.isochrones_maplayerselection) below) 
+            # Execute Main-Functions on Click: Placing them here prevents them from beeing executed multiple times, see https://gis.stackexchange.com/a/137161/107424
+            self.dlg.Isochrones_RequestIsochrones.clicked.connect(lambda: self.Isochrones_RequestIsochrones(self.isochrones_selectedLayer, self.Isochrones_Inputlayer_Fieldnames)) #Call Isochrones_RequestIsochrones function when clicking on RequestIsochrones button and handing over isochrones_selectedLayer. lambda function necessary to do this... (Reference: https://gis.stackexchange.com/a/351167/107424)
         
         # Setting GUI stuff for startup
         self.dlg.Isochrones_Date.setDateTime(QtCore.QDateTime.currentDateTime()) # Set Dateselection to today on restart or firststart
         self.dlg.Isochrones_ProgressBar.setValue(0) # Set Progressbar to 0 on restart or first start
-        
+        self.dlg.GeneralSettings_ServerStatusResult.setText("Unknown")
+        self.dlg.GeneralSettings_ServerStatusResult.setStyleSheet("background-color: white; color: black ")
+            
         # Calling Functions to update layer stuff when layerselection has changed
         self.dlg.Isochrones_SelectInputLayer.currentIndexChanged.connect(self.isochrones_maplayerselection) # Call function isochrones_maplayerselection to update all selection related stuff when selection has been changed
         
         # Calling Functions on button click
-        self.dlg.GeneralSettings_SelectSavePath.clicked.connect(self.select_output_folder) #Open file dialog when hitting button
-        self.dlg.GeneralSettings_Save.clicked.connect(self.store_variables) #Call store_Variables function when clicking on save button       
-        self.dlg.Isochrones_RequestIsochrones.clicked.connect(lambda: self.Isochrones_RequestIsochrones(self.isochrones_selectedLayer, self.Isochrones_Inputlayer_Fieldnames)) #Call Isochrones_RequestIsochrones function when clicking on RequestIsochrones button and handing over isochrones_selectedLayer. lambda function necessary to do this... (Reference: https://gis.stackexchange.com/a/351167/107424)
-              
+        self.dlg.GeneralSettings_CheckServerStatus.clicked.connect(self.check_server_status) #Open file dialog when hitting button
+        self.dlg.GeneralSettings_Save.clicked.connect(self.store_general_variables) #Call store_general_variables function when clicking on save button
+        self.dlg.Isochrones_SaveSettings.clicked.connect(self.store_isochrone_variables)
+        self.dlg.Isochrones_RestoreDefaultSettings.clicked.connect(self.restore_isochrone_variables)
+        
+        # Functions to execute every time the plugin is opened
+        self.read_general_variables() #Run Read-Stored-Variables-Function on every start
+        self.read_isochrone_variables()
+        
         # show the dialog
         self.dlg.show()
         # Run the dialog event loop
