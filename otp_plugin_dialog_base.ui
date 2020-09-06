@@ -23,7 +23,7 @@
     </rect>
    </property>
    <property name="currentIndex">
-    <number>0</number>
+    <number>3</number>
    </property>
    <widget class="QWidget" name="tab_run_isochrones">
     <property name="accessibleName">
@@ -1042,7 +1042,7 @@ Do not use an option if it is not compatible with the selected Mode. For example
       </rect>
      </property>
      <property name="toolTip">
-      <string>Server URL, e.g.: https://api.digitransit.fi/routing/v1/routers/hsl/</string>
+      <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Server URL including path to OTP-Router, ending with a slash. For example: https://api.digitransit.fi/routing/v1/routers/hsl/&lt;/p&gt;&lt;p&gt;Note that Proxies are currently not supported. Neither QGIS-Internal-Proxy-Settings, nor OS-Proxy-Settings. The Server must be accessible without a proxy.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
      </property>
      <property name="tabStopWidth">
       <number>80</number>

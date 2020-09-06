@@ -789,11 +789,11 @@ class OpenTripPlannerPlugin:
                 print(Isochrones_Error)
 
             #get features of file
-            Isochrone_Features = isochrone_responseLayer.getFeatures() # get features of just downloaded isochrone
             if not isochrone_responseLayer.isValid():
                 Isochrones_Error = 'Error: response layer is not valid'
                 print(Isochrones_Error)
-                
+            Isochrone_Features = isochrone_responseLayer.getFeatures() # get features of just downloaded isochrone 
+            
             print(Isochrones_Error)
             
             #iterate trough isochrone
